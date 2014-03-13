@@ -1,0 +1,119 @@
+<!--pandoc
+format: html
+s:
+mathjax:
+number-sections:
+
+t: latex
+number-sections:
+-->
+
+```{r setup, include = FALSE}
+require(knitr)
+require(reshape2)
+require(car)                           # for leveneTest
+```
+# STAT 292 Assignment 1
+
+## Orchard Example
+
+In an orchard a standard amount of a certain fertiliser is applied to some trees but not others.  The response variable for each tree is $Y = \text{apple yield (kg)}$, totalled over the season.  The question of interest is: do the trees with fertiliser have a different average yield of fruit from those without fertiliser?
+
+a.  There were 40 trees available.  Why is it sensible to use a balanced design with 20 each in the `Fertiliser` and `Control` groups?  (Brief answer only - just a line or two, not an essay.)
+
+With $n$ fixed at 40, the advantage of balance (equal numbers, 20 in each group) is that the power and precision of the hypothesis test to detect a difference of means are maximised.  The test is more likely to detect a difference of means, and the confidence interval around $\mu_1 - \mu_2$ will be as narrow as possible.
+
+b. Why should the allocation of `Fertiliser` and `Control` be done randomly?  (Brief answer.)
+
+`Fertiliser` and `Control` should be allocated to each tree at random in order to reduce bias.  An example of how the sample could be biased is that fertiliser could be applied to the trees that usually yield the least fruit, which may result in the effect of the fertiliser on the yield being underestimated.
+
+c. Suppose we obtain the following data set, where $Y = \text{yield of apples in kg.}$   There is one missing value because one tree died.
+
+```{r data, results = "asis"}
+orchard <- read.csv("./orchard.csv")
+kable(orchard)
+```
+
+Use the printout on page 8 and the guidelines above for a proper write-up, except that you need not write the model equation or produce diagnostic graphs for this assignment.
+
+### Orchard Report
+
+This is a one-way analysis of variance, with response variable $Y = \text{yield of apples in kg.}$ of trees, and factor "Group" at two levels, `Control` and `Fertiliser`.  There were 19 observations (trees) in the `Control` group and 20 observations in the Fertiliser group.  A standard amount of fertiliser was applied to the trees in the `Fertiliser` group.  No fertiliser was applied to trees in the `Control` group.
+
+#### Assumptions
+
+We assume independent data, drawn from normal distributions with the same variance.
+
+#### Hypotheses:
+$$
+H_0: \mu_1 = \mu_2 \text{(there is no difference of means)} \\\\
+H_1: \text{(at least one is different)}
+$$
+
+```{r anova_orchard}
+anova(aov(Yield ~ Group, data = orchard))
+```
+
+#### Statistical conclusion
+
+Since the $p$-value is less than 0.05, we have enough evidence to reject $H_0$ at the 5% significance level, i.e. a significant difference of means has been found.
+
+#### Interpretation
+
+We have found a significant difference of mean yield of apples in trees between trees with no fertiliser applied, and trees with a standard amount of fertiliser applied.  The mean yield of apples of trees with a standard amount of fertiliser applied was greater than the mean yield of apples of trees with no fertiliser applied.  This suggests that the application of fertiliser is associated with (or is a risk factor of) higher yields.
+
+d. Last year, the trees were not given any fertiliser.  Why might it have been better to record the previous year's yield for each tree, and then to work with
+$$
+Y = \text{yield this year} - \text{yield last year}
+$$
+for each tree?  (Brief common-sense answer only - no more than 2 or 3 lines.)
+
+It might have been better to record the previous year's yield for each tree (when no fertiliser was applied), and then to perform a matched pairs analysis with a response variable of $Y = \text{yield this year} - \text{yield last year} because this would enable an interpretation of cause and effect of the application of fertiliser affecting yield.  Bias may also be avoided, as the application of fertiliser to generally low-yield trees will not necessarily cause the effect of the fertiliser to be underestimated.
+
+## Nasal Sprays
+
+Improvement in breathing airflow is measured for twenty-five people suffering from nasal congestion.  They were treated with either a saline spray (A) or one of four nasal sprays (B, C, D, E) available over the counter in pharmacies.
+
+```{r nasal_sprays, results = "asis"}
+nasal <- read.csv("./nasal_sprays.csv")
+kable(nasal)
+```
+
+a. Use the printout on page 9 to present a one-way ANOVA of the data.  Use a 5% significance level for the test.  Use the guidelines above, but you need not write the model equation or produce diagnostic graphs for this assignment.
+
+### Nasal sprays report
+
+This is a one-way analysis of variance, with response variable $Y = \text{breathing airflow of people}$, and factor "Type" at five levels, A, B, C, D and E.  Type A was a saline nasal spray (placebo).  The other types were different nasal sprays available over the counter at pharmacies.  The sprays were used to treat 25 people suffering from nasal congestion.
+
+#### Assumptions
+
+We assume independent data, drawn from normal distributions with the same variance [^mynote1].
+
+[^mynote1]: With reservations, particularly about the small variance of treatment type A, the placebo, which is smaller than the variance of the other treatments.  Levene's test might confirm constant variance.  A box plot is in any case a poor way to summarise five data points, as all five data points are used in the drawing of the box plot (max, UQ, median, LQ, min), and then the mean is plotted too.  One might as well plot the points themselves}.
+
+#### Hypotheses
+$$
+H_0: \mu_1 = \mu_2 = \mu_3 = \mu_4 \text{(there is no difference of means)} \\\\
+H_1: \text{(at least one is different)}
+$$
+
+```{r anova_nasal_sprays}
+anova(aov(Improvement ~ Type, data = nasal))
+```
+
+#### Statistical conclusion
+
+Since the $p$-value is less than 0.05, we have enough evidence to reject $H_0$ at the 5% significance level, i.e. a significant difference of means has been found.
+
+#### Interpretation
+
+We have found a significant difference of mean improvement in breathing airflow of people between people treated with different nasal sprays.  Because this is an intervention study, we can interpret the results in a causal way.  So we conclude that some nasal sprays increase the breathing airflow of people suffering from nasal congestion more than other sprays do.
+
+b.  Use the ANOVA result above and the graph on page 10 to give a recommendation of the medication choices for a patient with nasal congestion.  (Two or three lines only, give a reason, but don't write an essay.)
+
+```{r boxplot_nasal}
+boxplot(Improvement ~ Type, nasal)
+leveneTest(Improvement ~ Type, nasal)
+```
+
+From examination of the box plot, nasal spray B showed the greatest improvement of breathing airflow.  On this basis, patients with nasal congestion might be recommended nasal spray B as medication.  However, this statistical analysis has only shown that the mean of at least one treatment is different from the means of the others, and a further analysis is needed to show which of the treatments has a significantly higher mean.
