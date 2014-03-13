@@ -1,0 +1,120 @@
+```{r setup, include = FALSE}
+opts_chunk$set(tidy = FALSE)
+require(scales) # for scientific formatting
+```
+
+# STAT 292 Computing Notes 2014
+
+## 1 Introduction
+
+STAT 292 uses the statistical computing package SAS Enterprise Guide.  There is a set of notes designed to walk students through the work in weeks 2 and 3 of the course.
+
+This document reproduces the same exercises using the R statistical programming language.
+
+**Note that this R output is not acceptable in assignments**
+
+### 1.1 Where?
+
+Section 1.1 is irrelevant to this project and has not been reproduced.
+
+### 1.2 When?
+
+Section 1.2 is irrelevant to this project and has not been reproduced.
+
+### 1.3 How?
+
+You can use this document by downloading the github repository and running `knitr` over it in an R console.
+
+```{r section-1-3, eval = FALSE}
+library(knitr)
+knit("path/to/this/document.Rmd")
+```
+
+### 1.4 ITS and the Cybercommons
+
+Section 1.4 is irrelevant to this project and has not been reproduced.
+
+### 1.5 Getting Help
+
+Ask someone else who knows R, or contact me on nacnudus@gmail.com.
+
+
+### 1.6 A Typical Session
+
+Section 1.6 is irrelevant to this project and has not been reproduced.
+
+### 1.7 Technical Details
+
+Section 1.7 is irrelevant to this project and has not been reproduced.
+
+## 2 SAS Enterprise Guide Computing Tutorial
+
+Section 2 is irrelevant to this project and has not been reproduced.
+### 2.1 Log in
+
+Section 2.1 is irrelevant to this project and has not been reproduced.
+
+### 2.2 Create an Excel Data File
+
+All the necessary data files for the exercises have already been created as csv files.
+
+### 2.3 Open SAS Enterprise Guide
+
+Section 2.3 is irrelevant to this project and has not been reproduced.
+
+### 2.4 Import the Data
+
+```{r section-2-4}
+possum <- read.csv("possum.csv", header = TRUE)
+str(possum)
+possum
+```
+
+### 2.5 Do a Statistical Analysis
+
+Suppose we wish to do a t-test for difference of mean weights of female and male possums.
+
+```{r section-2-5, results = "asis"}
+require(plyr)
+require(pander) # for nice tables
+require(psych) # for tabulated descriptive stats
+panderOptions("digits", 4)
+panderOptions("keep.trailing.zeros", TRUE)
+panderOptions("table.alignment.default", "right")
+panderOptions("table.alignment.rownames", "right")
+
+pander(describeBy(possum$weight, possum$sex, mat = TRUE, digits = 4)
+       , split.tables = Inf, style = "rmarkdown")
+
+pander(ddply(possum, .(sex), function(x) {
+      x.t.test <- t.test(x$weight)
+      with(x.t.test
+       , data.frame(method
+             , alternative
+             , estimate
+             , conf.int[1]
+             , conf.int[2]
+             , statistic
+             , p.value = scientific(p.value, 4)))
+}), split.tables = Inf, style = "rmarkdown")
+```
+
+```{r section-2-5-ttest}
+t.test(weight ~ sex, possum, var.equal = TRUE) # traditional t-test assumes equal variances
+t.test(weight ~ sex, possum) # default Welch Test
+```
+
+#### 2.5.2 Interpret the Output
+
+The first table has descriptive stats for each group, and confidence intervals for each group's population mean ($\mu$) and standard deviation ($\sigma$).
+
+Next, two $t$-tests are done.  The first is the traditional $t$-test (as in STAT 193), which assumes equal variances of the two populations.  The `t.test` function in R does not assume this by default, so the parameter `var.equal = TRUE` must be used.  The second test is an approximate $t$-test, called the Wlch Test (or Satterthwaite Test), which does not assume equal variances.  It has the same test statistic $t$ as in the regular test, but has approximate reduced degrees of freedom (no longer an integer), which carries through to a different $p$-value.  The degrees of freedom (d.f.) are reduced a lot of the sample variances look very different, not much if they look similar. It is possible that if the two samples have very different sample variances, the equal-variance test may (misleadingly) show a significant difference at the 5% significance level ($p < 0.05$), while the more realistic unequal-variance test shows no significant difference ($p > 0.05$).
+
+```{r section-2-5-2, include = FALSE}
+possum.sd <- daply(possum, .(sex), summarise, sd = sd(weight))
+possum.t.test.trad <- t.test(weight ~ sex, possum, var.equal = TRUE)
+possum.t.test.welch <- t.test(weight ~ sex, possum)
+```
+
+For the possum data, the sample standard deviations are fairly similar (`r formatC(possum.sd[[1]], format = "f", drop0trailing = FALSE)` and `r formatC(possum.sd[[2]], format = "f", drop0trailing = FALSE)`), so the d.f. penalty only reduces the d.f. from `r possum.t.test.trad$parameter` to `r possum.t.test.welch$parameter`.  Both tests give very similar results.  Use either.  The regular $t$-test has $p$-value $p =$ `r possum.t.test.trad$p.value`, indicating no significant difference of means at, say, the $5\%$ level (as $p > 0.05$).  We accept $H_0$ of no difference of means.
+
