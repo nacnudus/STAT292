@@ -1,0 +1,171 @@
+<!--pandoc
+format: html
+s:
+mathjax:
+number-sections:
+
+t: latex
+number-sections:
+-->
+
+```{r setup, include = FALSE}
+opts_chunk$set(fig.cap = "")
+
+require(knitr) # particularly for kable of anova
+require(plyr)
+require(reshape2)
+require(ggplot2)
+require(car)                           # for leveneTest
+```
+# STAT 292 Assignment 2
+
+## Task Time Example
+
+Children of different ages are timed doing a manipulative task which requires hand-eye coordination.  The data are:
+
+```{r tasktimedata}
+tasktime <- read.csv("./tasktime.csv")
+tasktime$age <- factor(tasktime$age)
+kable(tasktime)
+kable(ddply(tasktime, .(age), summarize, mean = mean(time), sd = sd(time)))
+```
+
+SAS output for one-way ANOVA is on pages 11 and 12.
+
+a. Give values of $n$ and $p$ for this experiment.  How many degrees of freedom will be in the `Treatments` row, the `Error` row and the `Total` row of the ANOVA table?  (Give the formulae and the actual values for this experiment.)
+
+$n$ is the number of children tested, which is 16.  $p$ is the number of groups of children (grouped by age), which is 4.
+
+The degrees of freedom in the `Treatments` row will be $p - 1 = 4 - 1 - 3$.  The degrees of freedom in the `Error` row will be $n - p = 16 - 4 - 12$.  The degrees of freedom in the `Total` row will be $n - 1 = 16 - 1 = 15$.
+
+b. Write up the results briefly as a research report (see Assignment Guidelines, Notices 1).  You should include a statement of the (complete) model equation, and also comments on whether the assumptions are satisfied.  Use a 5% significance level for the ANOVA test.
+
+### Report
+
+In this experiment, children were asked to perform a manipulative task which required hand-eye coordination.  The children were grouped by age into four groups: 3, 5, 7 and 9.  There were 16 children, and the design was balanced with four children in each age group.  A one-way ANOVA was used at the 5% significance level.
+
+```{r tasktimedata2}
+tasktime <- read.csv("./tasktime.csv")
+tasktime$age <- factor(tasktime$age)
+kable(tasktime)
+kable(ddply(tasktime, .(age), summarize, mean = mean(time), sd = sd(time)))
+```
+
+### Model equation
+$$
+Y_{ij} = \mu_i + E_{ij} \text{ for observation } j \text{ under treatment } i
+$$
+
+### Assumptions
+
+Normality, constant variance and independence.
+
+```{r assumptions_tasktime}
+ggplot(tasktime, aes(age, time)) + geom_boxplot() + 
+stat_summary(fun.y = mean, shape = 1, col = 'red', geom = 'point')
+
+leveneTest(time ~ age, data = tasktime, center = mean)
+# note the difference from SAS, which uses the squared residuals (by default)
+```
+
+Boxplots showed symmetry in all groups, but not constant variance.  Levene's test of the homogeneity of variance was insignificant at the 5% level.  Possibly, because of the relatively small data set ($n = 16$), it did not have the power to detect the differences that were clear in the boxplots.
+
+We assume independence, however we would like to know more about how the experiment was done.  For example, were the children together when the performed the test, and were they prevented from discussing the test with each other.
+
+Because of doubts about constant variance, a non-parametric test might be more valid than an ANOVA.  Independence would still have to be assumed, however.
+
+### Hypotheses.
+$$
+H_0 : \mu_1 = \mu_2 = \mu_3 = \mu_4 \\\\
+H_1  : \text{at least one population mean is different from at least one other}
+$$
+
+### ANOVA Table
+
+```{r tasktime_anova}
+kable(anova(lm(time ~ age, data = tasktime)))
+```
+
+### Statistical conclusion
+
+$H_0$ is rejected at the 5% level as $p < 0.05$.  A difference of means has been found.
+
+### Interpretation
+
+The time it takes for a child to complete a manipulative task which requires hand-eye coordination may depend on the age of the child.  Children aged 3 seem to take longer to complete such a task than older children.  However, because it is not known whether other factors were controlled for or randomized, such as such as eyesight, time of day, time since the last meal, and the person supervising the test for each child, we cannot conclude that there is a causal relationship between age and time taken.  There are also doubts about the constant variance of the samples, so a non-parametric test may give a different result.
+
+## Skink Temperature Example
+
+Skinks are tested for their preferred daytime temperature.  Each one is placed in a long tank which is warmer at one end, cooler at the other.  The temperature at the position where it settles is recorded.  There are four different species of skink, and we wish to test (at the 5% level of significance) whether the species differ in their preferred temperature.
+
+The following table gives the data.
+
+```{r skinkdata}
+skinks <- read.csv("./skinktemperature.csv")
+kable(skinks)
+kable(ddply(skinks, .(species), summarize, mean = mean(temperature), sd = sd(temperature)))
+```
+
+a. When running the experiment, other possible factors such as time of day, light, amount of food recently eaten, are kept as near constant as possible.  Why?
+
+It helps to establish whether there is a causal relationship between the response variable (temperature) and the independent variable (species) by removing other possible causes of variation.
+
+b. The skinks are not put in the tank together.  Why?
+
+Isolating the skinks helps to preserve independence, which is an assumption of ANOVA.  In this particular case, skinks may prefer to keep within certain distances of one-another, which would affect their positions in the tank.
+
+c. SAS output is given on pages 13 to 15.  Use the output to write up the ANOVA in the style suggested in the Assignment Guidelines (Notices 1).  You should include a statement of the (complete) model equation, and also comments on whether the assumptions are satisfied.  Use a 5% significance level for the ANOVA test.
+
+### Report
+
+In this experiment, skinks were tested for their preferred daytime temperature.  Skinks were placed individually into a long tank which was warmer at one and, cooler at the other.  The temperature at the position where the skink settled was recorded.  There were 40 skinks of 4 different species, and the design was balanced with 10 skinks of each species.  Other possible factors such as time of day, light, and amount of food recently eaten were kept as near constant as possible.  A one-way ANOVA was used at the 5% significance level.
+
+```{r skinkdata2}
+skinks <- read.csv("./skinktemperature.csv")
+kable(skinks)
+kable(ddply(skinks, .(species), summarize, total = sum(temperature), mean = mean(temperature), sd = sd(temperature)))
+```
+
+### Model equation
+$$
+Y_{ij} = \mu_i + E_{ij} \text{ for observation } j \text{ under treatment } i
+$$
+
+### Assumptions
+
+Normality, constant variance and independence.
+
+```{r assumptions_skinks}
+ggplot(skinks, aes(species, temperature)) + geom_boxplot() + 
+stat_summary(fun.y = mean, shape = 1, col = 'red', geom = 'point')
+
+leveneTest(temperature ~ species, data = skinks, center = mean)
+# note the difference from SAS, which uses the squared residuals (by default)
+
+plot(lm(temperature ~ species, data = skinks), which = 1:2)
+```
+
+Boxplots showed approximate symmetry in all groups, but possibly not constant variance as there appeared to be higher variance in species D.  Levene's test of the homogeneity of variance was insignificant at the 5% level, and as the size of the data set ($n = 40$) is not very small, the power is probably adequate to detect a difference of variances.  Inspection of a plot of residuals against predicted values does not reveal a difference of variance between the species, so we accept the null hypothesis of Levene's test that there is constant variance across the species.
+
+We assume independence because the skinks were placed individually into the tanks and because other possible factors such as time of day, light, and amount of food recently eaten were kept as near constant as possible.
+
+### Hypotheses.
+$$
+H_0 : \mu_1 = \mu_2 = \mu_3 = \mu_4 \\\\
+H_1  : \text{at least one population mean is different from at least one other}
+$$
+
+### ANOVA Table
+
+```{r skinks_anova}
+kable(anova(lm(temperature ~ species, data = skinks)))
+```
+
+### Statistical conclusion
+
+$H_0$ is rejected at the 5% level as $p < 0.05$.  A difference of means has been found.
+
+### Interpretation
+
+The temperature at which a skink prefers to settle varies according to the species of the skink.  There is a significant difference of means.  Because other possible factors were controlled for, we can conclude that there is a causal relationship between the species and the preferred temperature.   Species D had the highest preferred temperature, however further analysis is required to confirm which species differ significantly from the others.
+
