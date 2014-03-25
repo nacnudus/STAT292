@@ -1,0 +1,56 @@
+```{r setup, include = FALSE}
+
+```
+
+```{r libraries}
+require(plyr)
+require(ggplot2)
+require(knitr)
+```
+
+# Tutorial 2
+
+## Results from shape area estimation experiment
+
+The results (from the whole class) of the area estimation experiment from Tutorial 1 are in the following data table and box plot.
+
+```{r data}
+x <- read.csv("./tutorial.csv")
+kable(x)
+
+kable(ddply(x, .(shape), summarize
+      , n = length(shape)
+      , mean = mean(estimate)
+      , sd = sd(estimate)))
+```
+
+```{r analysis1}
+ggplot(x, aes(shape, estimate)) + geom_boxplot()
+
+x.lm <- lm(estimate ~ shape, data = x)
+plot(x.lm, which = 1:2)
+
+kable(anova(lm(residuals(x.lm)^2 ~ x$shape))) # Levene's test
+```
+
+```{r analysis2}
+# remove outliers
+x <- x[x$estimate < 100, ]
+ggplot(x, aes(shape, estimate)) + geom_boxplot()
+
+x.lm <- lm(estimate ~ shape, data = x)
+plot(x.lm, which = 1:2)
+
+kable(anova(lm(residuals(x.lm)^2 ~ x$shape))) # Levene's test
+```
+
+1. Look at the data table above.  Comment on any unusual features of the data.  Do you think the ANOVA assumptions will be satisfied?
+
+2. Go through the SAS output: interpret and comment.  Include answers to these questions:
+   a) There is one analysis on pages 3 to 5 and another on pages 6 to 8.  How do they differ?  What motivated the second analysis?
+   b) Where is the median for the triangles in the boxplot on page 6?
+   c) Why do the ANOVAs from the first and second analysis give such different results?  Which is preferable?  Are we justified in using the second analysis?
+   d) Why do the two Kruskal-Wallis tests show the same result, even though the ANOVA results were so different?
+
+3. How would this be written up as a research report using the Assignment Guidelines from Notices 1?
+
