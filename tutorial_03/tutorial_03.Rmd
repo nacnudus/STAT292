@@ -1,0 +1,202 @@
+```{r setup, include = FALSE}
+options(digits = 6)
+# knit_hooks$set(inline = function(x) {
+# if (is.numeric(x))
+# x <- round(x, 2)
+# as.character(x) # convert x to character and return
+# })
+```
+
+```{r packages}
+require(plyr)
+require(knitr)
+require(ggplot2)
+require(agricolae) # for HSD.test (Tukey test)
+```
+
+# STAT 292 Tutorial 3
+
+## Areas Experiment (for the last time!)
+
+More SAS analysis from the area estimation (Tutorial 1) is on page 3, giving the Tukey procedure using the smaller data set with the three outliers removed.
+
+```{r areas_analysis}
+areas <- read.csv("./areas.csv")
+areas <- areas[areas$estimate < 100, ] # remove three outliers
+
+# means of each group
+areas.summary <- ddply(areas, .(shape), summarize, mean = mean(estimate))
+areas.summary <- areas.summary[order(areas.summary$mean), ]
+
+# boxplot
+ggplot(areas, aes(shape, estimate)) + geom_boxplot()
+
+# Levene's test (using squared residuals)
+areas.lm <- lm(estimate ~ shape, areas)
+kable(anova(lm(residuals(areas.lm)^2 ~ areas$shape)))
+
+# Diagnostic graphs
+plot(areas.lm, which = 1:2)
+
+# ANOVA table
+areas.anova <- (anova(lm(estimate ~ shape, data = areas)))
+Total <- data.frame(sum(areas.anova[, 1]), sum(areas.anova[, 2])
+		    , NA, NA, NA, row.names = "Corrected Total")
+colnames(Total) <- colnames(x)
+kable(rbind(areas.anova, Total))
+
+# Tukey test
+HSD.test(areas.lm, "shape", console = TRUE)
+```
+
+a. SAS skills:
+
+  i. How would the data have been typed up and entered into SAS?
+
+  The data set may be imported into SAS from an Excel file, called (say) `areas.xlsx`.
+
+  ii. From the SAS output, what was the independent variable?  The dependent variable?
+
+  From the SAS printout, we see that the independent variable was `Shape` and the dependent variable was `Est`.
+
+b. Tukey results and overall interpretation:
+
+  i. Interpret the Tukey output.  Include drawing an underlining diagram (by hand).
+
+  The Tukey test does all pairwise comparisons of means over the four shapes.  These pairwise tests have all been adjusted to allow for doing multiple comparisons, and the experimentwise error rate is here set at 5%.  The tests rely on the same assumptions as the ANOVA.  We have used the data with the three major outliers removed, in order to make the ANOVA and Tukey test more valid.  The data means, from lowest to highest, are `r paste0(round(areas.summary[1, 2], 3), " (", areas.summary[1, 1], ")")`, `r paste0(round(areas.summary[2, 2], 3), " (", areas.summary[2, 1], ")")`, `r paste0(round(areas.summary[3, 2], 3), " (", areas.summary[3, 1], ")")` and `r paste0(round(areas.summary[4, 2], 3), " (", areas.summary[4, 1], ")")`.
+
+  The following underlining diagram has the four `Shapes` placed on an axis using their means.  For any pair of shapes, a common underline indicates no significant difference of means (accept $H_0: \mu_i = \mu_j$) at an experimentwise significance level of 5%.
+
+```{r areas_underlining, fig.height = 9}
+plot(TukeyHSD(aov(areas.lm)))
+```
+
+  ii. In previous years, this experiment has often shown there is a tendency to overestimate the area for the oblong and the triangle.  Does this year's data set support that finding?
+
+  The actual areas of all four shapes were the same, 18 cm^2.  The means and the underlining diagram suggests that again this year the oblong and triangle have their areas overestimated (although we have not actually done a direct test of $H_0: \mu_{oblong} = 18$ versus $H_A: \mu_{oblong} > 18$, or a similar test for the triangle).  These can be done, but not in STAT~292.
+
+## Albatross Wingspan
+
+A biologist wishes to compare the wingspans of adult albatrosses in four colonies.  A random sample of eight albatrosses from each colony gives the following wingspans:
+
+SAS output with boxplots, a one-way ANOVA, diagnostic graphs and a Tukey test are on pages 4 to 6.
+
+```{r wingspan_analysis}
+wingspan <- read.csv("./wingspan.csv")
+
+# means of each group
+wingspan.summary <- ddply(wingspan, .(colony), summarize, mean = mean(wingspan))
+wingspan.summary <- wingspan.summary[order(wingspan.summary$mean), ]
+
+# boxplot
+ggplot(wingspan, aes(colony, wingspan)) + geom_boxplot()
+
+# Levene's test (using squared residuals)
+wingspan.lm <- lm(wingspan ~ colony, wingspan)
+kable(anova(lm(residuals(wingspan.lm)^2 ~ wingspan$colony)))
+
+# Diagnostic graphs
+plot(wingspan.lm, which = 1:2)
+
+# ANOVA table
+wingspan.anova <- (anova(lm(wingspan ~ colony, data = wingspan)))
+Total <- data.frame(sum(wingspan.anova[, 1]), sum(wingspan.anova[, 2])
+		    , NA, NA, NA, row.names = "Corrected Total")
+colnames(Total) <- colnames(wingspan.anova)
+kable(rbind(wingspan.anova, Total))
+
+# Tukey test
+HSD.test(wingspan.lm, "colony", console = TRUE)
+```
+
+```{r wingspan_underling, fig.height = 9}
+plot(TukeyHSD(aov(wingspan.lm)))
+```
+
+a. Go through the SAS output, interpret and discuss.
+
+  Notes from the output:
+
+  * Boxplots show a reasonable symmetry (confirming normality) and fairly similar spread (equal variances).  There are no obvious outliers.
+
+  * The first diagnostic graph (top left), Residual versus Predicted Value, shows a level band across the page, supporting the assumption of constant variance.
+
+  * The second diagnostic graph (left centre), Residual versus Quantile, shows a straight line, confirming normality.
+
+  * Levene's test has $p = 0.0792$ -- we cannot reject the null hypothesis of equal variances at the 5% level, as $p > 0.05$.
+
+  * The ANOVA table gives a test statistic $F = 12.47$ on (3, 28) d.f.  The associated $p$ value is $<0.0001$, so the null hypothesis of equal means is to be rejected at a 5% level, and also at a 1% level.
+
+  * We have found a significant difference of wingspan over the four colonies.
+
+  * Tukey's test shows that Colonies A, D and B belong to the same group as far as wingspan is concerned, but Colony C is different from each of A, D and B.
+
+b. Colony A is well separated geographically from the other three colonies.  This is possibly a different subspecies of albatross.  One of the objectives of the research is to compare colony A wingspans with the others.  Does the Tukey test support the idea that the average wingspan in Colony A differs from the others?
+
+  No, Tukey's test does not support Colony A having different average wingspan from the other colonies.  The one which seems different is is Colony C, with a lower wingspan.
+
+c. Write up the results as a statistical report. Include the Tukey test and a hand-drawn underlining diagram.
+
+### Report
+
+#### Model equation
+
+$Y_{ij} = \mu_i + E_{ij}$ for observation $j$ under treatment $i$.
+
+#### Assumptions
+
+Normality constant variance and independence.  Boxplots showed symmetry, supporting the assumption of normality.  The boxplots also had similar vertical spread, supporting the assumption of equal variance.  There were no outliers.  Levene's test also supported the constant variance assumption.  The first diagnostic graph, Residual versus Predicted Value, shwoed a level band, and hence equal variances.  The plot of Residual versus the Quantiles of the standard normal distribution showed a straight line, indicating normality of the residuals.
+
+To assume independence, we need to know how the data were collected.
+
+Was the sampling really random?  We assume so, but cannot check this.
+
+#### ANOVA hypotheses
+
+  $H_0: \mu_1 = \mu_2 \mu_3 = \mu_4$
+
+  $H_A: \text{ At least one population mean is different from at least one other. }$
+
+#### ANOVA table
+
+(using the data set with outliers removed):
+
+
+
+#### ANOVA statistical conclusion
+
+$H_0$ is rejected at the 5% level as $p < 0.0001 < 0.05$.  (It is also rejected at the 1% level.)  A difference of means has been found.  (We can proceed to the Tukey test.)
+
+#### Tukey test assumptions
+
+These are the same as for the ANOVA.
+
+#### Tukey test hypotheses
+
+These are all six pairwise comparisons of colonies, e.g. $H_0: \mu_A = \mu_B$ versus $H_A: \mu_A \neq \mu_B$, and similarly all the other pairs of colonies.
+
+#### Tukey test statistical conclusions
+
+Colony C differs from each of the other three, but in colonies A, B and D albatrosses have similar average wingspans.  There is an experminetwise significance level of 5% for these tests.
+
+#### Interpretation
+
+The ANOVA shows that the average wingspan of albatrosses from the four colonies show some significant differences.  The Tukey test gives more detail.  Only Colony C has albatrosses with a different average wingspan, which is lower than for Colonies A, B and D.
+
+The result originally sought, that A is different from B, C and D, was not supported.  Even though A had the highest mean wingspan, it was not high enough to indicate a significant difference.
+
+*Note: Possibly larger samples could confirm that A is different from B, C and D.*
+
+## Tukey Output
+
+The stye of the Tukey output depends on whether the data set was balanced or not.  Compare the two styles in the examples above.
+
+With the balanced data set (albatrosses), we are given two summary tables.  The first gives a minimum significant difference of 11.752; this tells us that any two data means which differ by at least 11.752 show a significant difference of population means.  The second table is similar to an underlining diagram, although it doesn't give the correct spacing of the data means.  Any two means sharing a common letter label ("A", "B", etc.) do not differ significantly.
+
+With the unbalanced data (area estimation) a single "minimum significant difference" is not possible.  What is regarded as a significant difference of two means depends in part ton the two sample sizes, and this is not the same for all possible tests ofgroups.  Each pairwise test must be considered separately.  We are given the confidence interval (CI) for each difference of means (with a default confidence level of 95%), and whether or not the CI includes zero tells us whether to accept or reject $H0: \mu_i = \mu_j$.  Rejections of $H_0$ are signalled by stars.
+
+## Session Info
+
+```{r session_info}
+sessionInfo()
+```
