@@ -1,0 +1,153 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+```
+
+```{r packages, include = FALSE}
+require(plyr)
+require(knitr)
+require(ggplot2)
+require(agricolae) # for HSD.test (Tukey test)
+```
+
+# STAT 292 Assignment 3
+
+## Nasal spray example by computer
+
+### Computer analysis
+
+The output of the SAS statistical software package is appended to this report.
+
+```{r nasal_analysis, include = include, echo = echo}
+nasal <- read.csv("./nasal_sprays.csv")
+
+# means of each group
+nasal.summary <- ddply(nasal, .(type), summarize, mean = mean(improvement))
+nasal.summary <- nasal.summary[order(nasal.summary$mean), ]
+
+# boxplot
+ggplot(nasal, aes(type, improvement)) + geom_boxplot() +
+stat_summary(fun.y = mean, geom = "point", colour = "red", shape = 5)
+
+# Levene's test (using squared residuals)
+nasal.lm <- lm(improvement ~ type, nasal)
+kable(anova(lm(residuals(nasal.lm)^2 ~ nasal$type)))
+
+# Diagnostic graphs
+plot(nasal.lm, which = 1:2)
+
+# ANOVA table
+nasal.anova <- (anova(lm(improvement ~ type, data = nasal)))
+Total <- data.frame(sum(nasal.anova[, 1]), sum(nasal.anova[, 2])
+		    , NA, NA, NA, row.names = "Corrected Total")
+colnames(Total) <- colnames(nasal.anova)
+kable(rbind(nasal.anova, Total))
+
+# Tukey test
+HSD.test(nasal.lm, "type", console = TRUE)
+nasal.HSD <- HSD.test(nasal.lm, "type")
+nasal.HSD.group <- nasal.HSD$group
+
+# Kruskal-Wallis test
+kruskal.test(improvement ~ type, data = nasal)
+```
+
+```{r nasal_underlining, include = include, echo = echo, fig.height = 9}
+plot(TukeyHSD(aov(nasal.lm)))
+```
+### Report
+
+This is a one-way analysis of variance, with response variable $Y = \text{breathing airflow of people}$, and factor "Type" at five levels, A, B, C, D and E.  Type A was a saline nasal spray (placebo).  The other types were different nasal sprays available over the counter at pharmacies.  The sprays were used to treat 25 people suffering from nasal congestion.
+
+#### ANOVA model equation
+
+$Y_{ij} = \mu_i + E_{ij}$ for observation $j$ under treatment $i$.
+
+#### ANOVA assumptions
+
+We assume normality, equal variance and independence.
+
+Boxplots show a reasonable symmetry, supporting the assumption of normality, because the means and medians are close.  There are no obvious outliers, also supporting normality.  Finally, a q-q-plot shows the standardized residuals falling on a reasonably straight line, which supports normality.
+
+The boxplots show fairly similar spread, which supports the assumption of equal variance.  We have some concerns from the boxplots about the small variance of type A, and the plot of residuals versus predicted values for type A shows a cluster close to zero, while the residuals of other types do not.  There does not appear to be an obvious funnelling pattern in the residuals, so a log transformation has not been attempted.  Levene's test was insignificant at the 5% level ($p < 0.2156$), so we do not reject the null hypothesis of equal variances.
+
+We assume normality, although we would like to know more about how the experiment was performed, e.g. how the patients were selected, whether the patients were randomly allocated to treatments, and whether a double blind was used regarding the placebo.
+
+#### ANOVA hypotheses
+
+$$
+H_0: \mu_1 = \mu_2 = \mu_3 = \mu_4 \text{ (there is no difference of means)}
+$$
+$$
+H_A: \text{(at least one is different)}
+$$
+
+#### ANOVA statistical conclusion
+
+Since the $p$-value is less than 0.05, we have enough evidence to reject $H_0$ at the 5% significance level, i.e. a significant difference of means has been found.  We can proceed to a post-hoc pairwise test, the Tukey test, to see which of the treatments differs from the saline spray.
+
+#### Tukey Test assumptions
+
+These are the same as for the ANOVA.
+
+#### Tukey Test hypotheses
+
+These are all 10 pairwise comparisons of sprays, e.g. $H_0: \mu_A = \mu_B$ versus $H_A: \mu_A \neq \mu_B$ and similarly all the other pairs of hypotheses.
+
+#### Tukey Test statistical conclusions
+
+The data means, from highest to lowest, are
+`r nasal.HSD.group[1, 2]` for spray `r nasal.HSD.group[1, 1]`
+, `r nasal.HSD.group[2, 2]` for spray `r nasal.HSD.group[2, 1]`
+, `r nasal.HSD.group[3, 2]` for spray `r nasal.HSD.group[3, 1]`
+, `r nasal.HSD.group[4, 2]` for spray `r nasal.HSD.group[4, 1]`
+, and `r nasal.HSD.group[5, 2]` for spray `r nasal.HSD.group[5, 1]`.
+
+From the Tukey output, at a 5% experimentwise significance level, there are differences between (i) B and each of A, C and D, and (ii) between E and each of A and C.  The pairs with no significant difference of means are {A,C}, {A,D}, {C,D}, {D,E}, and {B,E}.
+
+The following underlining diagram has the four `sprays` placed on an axis using their means.  For any pair of sprays, a common underline indicates no significant difference of means at an experimentwise significance level of 5%.
+
+```{r underlining, fig.height = 2, echo = echo, dpi = 300}
+new_theme_empty <- theme_bw()
+new_theme_empty$line <- element_blank()
+new_theme_empty$rect <- element_blank()
+new_theme_empty$strip.text <- element_blank()
+new_theme_empty$axis.text <- element_blank()
+new_theme_empty$plot.title <- element_blank()
+new_theme_empty$axis.title <- element_blank()
+new_theme_empty$plot.margin <- structure(c(0, 0, -1, -1), unit = "lines", valid.unit = 3L, class = "unit")
+
+line_range <- range(nasal.HSD.group$means) + c(-2, 2)
+
+ggplot(nasal.HSD.group, aes(means, y = 0, label = trt)) + 
+geom_point() + 
+geom_text(vjust = -1) +
+xlim(line_range) +
+ylim(-1.5, 0.5) +
+annotate("text", nasal.HSD.group$means + c(0, 0, 0, 0.5, -0.5), -0.15, label = nasal.HSD.group$means, size = 4) +
+annotate("segment", 10.6, 0, xend = 36.6, yend = 0) +
+annotate("segment", 10.6, -0.5, xend = 18.8, yend = -0.5) +
+annotate("segment", 14.8, -1, xend = 30.4, yend = -1) +
+annotate("segment", 26.4, -1.5, xend = 36.6, yend = -1.5) +
+new_theme_empty
+```
+
+Sprays B and E both differ from the placebo (spray B) at the 5% experimentwise significance level.  Spray B also differs significantly from spray D, whereas spray E does not differ significantly from spray B.
+
+#### Kruskal-Wallis Test
+
+Because of doubts about the validity of the ANOVA assumptions, a non-parametric test (Kruskal-Wallis) was performed.  This test still assumes continuity and independence.
+
+#### Kruskal-Wallis hypotheses
+
+These are the same as for the ANOVA, except that medians are tested rather than means.
+
+#### Kruskal-Wallis statistical conclusions
+
+$H_0$ is rejected at the 5% level as $p = 0.0032 < 0.05$. A significant difference of means has been found between the median improvement due to at least one spray compared with at least one other.  However, no test has been done to determine which sprays differ from one another.
+
+#### Interpretation
+
+Regardless of whether the ANOVA assumptions of normality and constant variance have been met, there is a difference between the mean or median of the improvement in breathing airflow of patients using at least one of of the sprays.  If we accept that the ANOVA assumptions have been met, then the Tukey test shows that the mean improvement in breathing airflow of patients using sprays B and E are greater than for patients using spray C or the placebo, saline spray A.
+
+If more were known about the experimental design, especially whether other factors were controlled or randomized, then we could infer a causal relationship between the use of sprays B and E and an improvement in breathing airflow.  In this case, because the Tukey test showed that spray B differs from the most other sprays (three sprays, A, C and D), it might be recommended to patients with nasal congestion.  However other factors must be considered, such as side effects of the treatment, its cost, and the particular needs of the patient, and spray E might be recommended instead.
