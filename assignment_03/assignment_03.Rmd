@@ -10,6 +10,10 @@ require(ggplot2)
 require(agricolae) # for HSD.test (Tukey test)
 ```
 
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
 # STAT 292 Assignment 3
 
 ## Nasal spray example by computer
