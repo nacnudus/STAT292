@@ -1,0 +1,25 @@
+Mistakes,Env,Strain,Logmist,Rat Strain
+26,free,bright,3.25809653802148,S3.Bright
+41,free,bright,3.71357206670431,S3.Bright
+14,free,bright,2.63905732961526,S3.Bright
+16,free,bright,2.77258872223978,S3.Bright
+41,free,mixed,3.71357206670431,S2.Mixed
+26,free,mixed,3.25809653802148,S2.Mixed
+82,free,mixed,4.40671924726425,S2.Mixed
+86,free,mixed,4.45434729625351,S2.Mixed
+36,free,dull,3.58351893845611,S1.Dull
+39,free,dull,3.66356164612965,S1.Dull
+87,free,dull,4.46590811865458,S1.Dull
+99,free,dull,4.59511985013459,S1.Dull
+51,restr,bright,3.93182563272433,S3.Bright
+96,restr,bright,4.56434819146784,S3.Bright
+35,restr,bright,3.55534806148941,S3.Bright
+36,restr,bright,3.58351893845611,S3.Bright
+39,restr,mixed,3.66356164612965,S2.Mixed
+104,restr,mixed,4.64439089914137,S2.Mixed
+114,restr,mixed,4.7361984483945,S2.Mixed
+92,restr,mixed,4.52178857704904,S2.Mixed
+42,restr,dull,3.73766961828337,S1.Dull
+92,restr,dull,4.52178857704904,S1.Dull
+133,restr,dull,4.89034912822175,S1.Dull
+124,restr,dull,4.82028156560504,S1.Dull
