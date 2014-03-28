@@ -1,6 +1,5 @@
 ```{r setup, include = FALSE}
 opts_chunk$set(tidy = FALSE)
-require(scales) # for scientific formatting
 ```
 
 # STAT 292 Computing Notes 2014
@@ -77,14 +76,11 @@ Suppose we wish to do a t-test for difference of mean weights of female and male
 ```{r section-2-5, results = "asis"}
 require(plyr)
 require(pander) # for nice tables
-require(psych) # for tabulated descriptive stats
+require(scales) # for scientific notation
 panderOptions("digits", 4)
 panderOptions("keep.trailing.zeros", TRUE)
 panderOptions("table.alignment.default", "right")
 panderOptions("table.alignment.rownames", "right")
-
-pander(describeBy(possum$weight, possum$sex, mat = TRUE, digits = 4)
-       , split.tables = Inf, style = "rmarkdown")
 
 pander(ddply(possum, .(sex), function(x) {
       x.t.test <- t.test(x$weight)
@@ -100,17 +96,19 @@ pander(ddply(possum, .(sex), function(x) {
 ```
 
 ```{r section-2-5-ttest}
-t.test(weight ~ sex, possum, var.equal = TRUE) # traditional t-test assumes equal variances
+t.test(weight ~ sex, possum, var.equal = TRUE)
+# traditional t-test assumes equal variances
+
 t.test(weight ~ sex, possum) # default Welch Test
 ```
 
-#### 2.5.2 Interpret the Output
+#### 2.5.1 Interpret the Output
 
 The first table has descriptive stats for each group, and confidence intervals for each group's population mean ($\mu$) and standard deviation ($\sigma$).
 
 Next, two $t$-tests are done.  The first is the traditional $t$-test (as in STAT 193), which assumes equal variances of the two populations.  The `t.test` function in R does not assume this by default, so the parameter `var.equal = TRUE` must be used.  The second test is an approximate $t$-test, called the Wlch Test (or Satterthwaite Test), which does not assume equal variances.  It has the same test statistic $t$ as in the regular test, but has approximate reduced degrees of freedom (no longer an integer), which carries through to a different $p$-value.  The degrees of freedom (d.f.) are reduced a lot of the sample variances look very different, not much if they look similar. It is possible that if the two samples have very different sample variances, the equal-variance test may (misleadingly) show a significant difference at the 5% significance level ($p < 0.05$), while the more realistic unequal-variance test shows no significant difference ($p > 0.05$).
 
-```{r section-2-5-2, include = FALSE}
+```{r section-2-5-1, include = FALSE}
 possum.sd <- daply(possum, .(sex), summarise, sd = sd(weight))
 possum.t.test.trad <- t.test(weight ~ sex, possum, var.equal = TRUE)
 possum.t.test.welch <- t.test(weight ~ sex, possum)
@@ -118,3 +116,189 @@ possum.t.test.welch <- t.test(weight ~ sex, possum)
 
 For the possum data, the sample standard deviations are fairly similar (`r formatC(possum.sd[[1]], format = "f", drop0trailing = FALSE)` and `r formatC(possum.sd[[2]], format = "f", drop0trailing = FALSE)`), so the d.f. penalty only reduces the d.f. from `r possum.t.test.trad$parameter` to `r possum.t.test.welch$parameter`.  Both tests give very similar results.  Use either.  The regular $t$-test has $p$-value $p =$ `r possum.t.test.trad$p.value`, indicating no significant difference of means at, say, the $5\%$ level (as $p > 0.05$).  We accept $H_0$ of no difference of means.
 
+#### 2.5.2 A Non-parametric Analysis
+
+If there are doubts about the normality or the equal variance assumption, a non-parametric analysis is useful.  We'll use the Kruskal-Wallis test, which compares two or more probability distributions.
+
+```{r section-2-5-2}
+possum.kruskal.test <- kruskal.test(weight ~ sex, possum)
+possum.kruskal.test
+```
+
+The Kruskal-Wallis results on screen give a $p$-value of `r possum.kruskal.test$p.value`, indicating that we cannot reject $H_0$ at the 5% significance level.
+
+### 2.6 Draw Boxplots
+
+To check for symmetry, outliers and equal variance, boxplots of weight by sex are useful.  Although a boxplot was done in the analysis above, we may draw our own plots separately.
+
+```{r section-2-6}
+boxplot(weight ~ sex, data = possum)
+possum.means <- tapply(possum$weight, possum$sex, mean)
+points(possum.means, col="red", pch=5)
+
+require(ggplot2)
+ggplot(possum, aes(sex, weight)) + geom_boxplot() + 
+stat_summary(fun.y = mean, geom = "point", colour = "red", shape = 5)
+```
+
+### 2.7 Draw a Scatterplot
+
+Also try a scatterplot of weight versus age.
+
+```{r section-2-7}
+plot(weight ~ age, data = possum)
+```
+
+### 2.8 Do an ANOVA
+
+We'll now do what the biologist might have done in the first place: divide the possums into three groups, adult females (f), adult males (m), and juveniles (j) aged 1 or 2 years.  We'll then do a one-way ANOVA of the weights for the three groups.
+
+```{r section-2-8}
+# Group the possums by age into f, m and j
+possum$group <- possum$sex
+possum$group <- factor(possum$group, levels = c("m", "f", "j"))
+possum$group[possum$age <= 2] <- "j"
+
+# Boxplot
+boxplot(weight ~ group, data = possum)
+possum.means <- tapply(possum$weight, possum$group, mean)
+points(possum.means, col="red", pch=5)
+
+require(ggplot2)
+ggplot(possum, aes(group, weight)) + geom_boxplot() + 
+stat_summary(fun.y = mean, geom = "point", colour = "red", shape = 5)
+
+# Levene's test (using squared residuals)
+possum.lm <- lm(weight ~ group, possum)
+possum.levene <- anova(lm(residuals(possum.lm)^2 ~ possum$group))
+kable(possum.levene)
+
+# ANOVA table
+possum.anova <- (anova(lm(weight ~ group, data = possum)))
+Total <- data.frame(sum(possum.anova[, 1]), sum(possum.anova[, 2])
+		    , NA, NA, NA, row.names = "Corrected Total")
+colnames(Total) <- colnames(possum.anova)
+kable(rbind(possum.anova, Total))
+
+# Tukey test
+require(agricolae) # for HSD.test (Tukey test)
+HSD.test(possum.lm, "group", console = TRUE)
+possum.HSD <- HSD.test(possum.lm, "group")
+possum.HSD.group <- possum.HSD$group
+plot(TukeyHSD(aov(possum.lm)))
+```
+
+There's far more information than we need.
+
+* There is a significant difference of means ($F =$ `r possum.anova$"F value"` on (`r possum.anova$Df[1]`, `r possum.anova$Df[2]`)df, $p =$ `r possum.anova$"Pr(>F)"[1]`).
+
+* Levene's test for homogeneity of variances accepts the null hypothesis that there is no difference of variances over the three groups ($F =$ `r possum.levene$"F value"` on (`r possum.levene$Df[1]`, `r possum.levene$Df[2]`)df, $p =$ `r possum.levene$"Pr(>F)"`).
+
+* The Tukey test does all possible pairwise comparisons of groups (multiple comparisons).  The table shows each group has a significantly different mean from each other group.  We are given confidence intervals for all the pairwise differences of means; any that do not include zero indicate significantly different means.
+
+* The boxplots show approximate symmetry and constant variance over the three groups.
+
+#### 2.9 Do a Contingency Table
+
+Is sex related to colour (black or grey)?
+
+```{r section-2-9}
+table(possum$sex, possum$colour)
+possum.chisq <- chisq.test(possum$sex, possum$colour, correct = FALSE)
+possum.chisq
+```
+
+We are given a table of frequencies, and the results of the $\chi^2$ test ($\chi^2 =$ `r possum.chisq$statistic`, `r possum.chisq$parameter`df, $p =$ `r possum.chisq$p.value`).  We do not have enough evidence to reject $H_0$, so we conclude that there is no association between colour and sex.  However, we should not be using this test: we are warned of incorrectness and we had to force R not to apply Yates' continuity correction for too few cells with the expected value $\geq 5$.  More data are needed for the test to be valid.
+
+#### 2.10 Tidying and Printing
+
+Section 2.10 is irrelevant to this project and has not been reproduced.
+
+#### 2.11 Close SAS Enterprise Guide
+
+Section 2.11 is irrelevant to this project and has not been reproduced.
+
+#### 2.12 Log Out
+
+Section 2.12 is irrelevant to this project and has not been reproduced.
+
+## 3 One-Way ANOVA
+
+### 3.1 Rimu Example
+
+Here are details of obtaining the SAS Enterprise Guide printouts for the rimu example one-way ANOVA in the Lecture Notes Part 1 (data on page 18, SAS analysis on pages 29-33 and page 36).
+
+```{r section-3-1}
+rimu <- read.csv("rimu.csv", colClasses = c("factor", "numeric")) 
+
+source("helper_functions.R")
+test <- dg.anova.oneway(DBH ~ site, data = rimu)
+
+rimu$logDBH <- log(rimu$DBH)
+test <- dg.anova.oneway(logDBH ~ site, data = rimu)
+```
+
+### 3.2 Separating Graphs from an array
+
+Section 3.2 is irrelevant to this project and has not been reproduced.
+
+## 4 Factorial ANOVA
+
+### 4.1 Gym Example
+
+This example uses the data on page 57 of the lecture notes, and produces the SAS analysis on pages 57-60.
+
+```{r section-4-1}
+gym <- read.csv("gym.csv")
+source("helper_functions.R")
+test <- dg.anova.twoway(improve ~ sex * prog, data = gym)
+```
+
+### 4.2 Pig Weight Example
+
+Example from Lecture Notes Part 1 pages 66-67.
+
+**Note:** This example demonstrates a different way of specifying a factorial design with interaction.
+
+```{r section-4-2}
+pig <- read.csv("pigwt.csv")
+source("helper_functions.R")
+test <- dg.anova.twoway(wtgain ~ antibiotic * vitaminB12, data = pig)
+```
+
+### 4.3 Rat Mistakes Example
+
+Example from Lecture Notes Part 1 pages 68-72.
+
+**Note:** This example includes both multiple comparisons and drawing an interaction plot.
+
+```{r section-4-3}
+rat <- read.csv("ratmist.csv")
+source("helper_functions.R")
+rat$strain <- factor(rat$strain, levels = c("dull", "mixed", "bright"))
+test <- dg.anova.twoway(mistakes ~ strain * env, data = rat)
+
+rat$logmistakes <- log(rat$mistakes)
+test <- dg.anova.twoway(logmistakes ~ strain * env, data = rat)
+```
+
+### 4.4 Gecko Example
+
+```{r section-4-4}
+gecko <- read.csv("gecko.csv", colClasses = c("factor", "factor", "numeric"))
+source("helper_functions.R")
+require(car)
+gecko.lm <- lm(weight ~ species * island, data = gecko)
+anova(gecko.lm)
+Anova(gecko.lm, type = 3) # Not implemented in the same way as SAS
+```
+
+### 4.5 Agricultural Example
+
+```{r section-4-5}
+fert <- read.csv("fert.csv")
+source("helper_functions.R")
+test <- dg.anova.threeway(yield ~ fertiliser * weed * variety, data = fert)
+lm(yield ~ fertiliser * weed * variety, data = fert)
+plot(lm(yield ~ fertiliser * weed * variety - fertiliser:weed:variety, data = fert))
+```
