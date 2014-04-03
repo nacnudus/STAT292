@@ -1,0 +1,116 @@
+```{r setup, include = FALSE}
+opts_chunk$set(dpi = 300)
+require(knitr)
+require(ggplot2)
+source("../computing_notes/helper_functions.R")
+```
+# STAT 292 Chapter 2 Exercises
+
+## 1. Daphnia
+
+Data from Sokal and Rohlf.  In the special case of there being only two groups, there is an apparent choice of tests for $H_0: \mu_1 = \mu_2$ versus $H_A: \mu_1 \neq \mu_2$.  These are the F-test of analysis of variance, and the t-test for differences of means (with a two-sided alternative).  However, the two tests are actually equivalent.  The F statistic is the square of the t statistic, and the critical F value is the square of the critical t value.  Hence the decisions for the two tests (whether to accept or reject $H_0$) will always be identical.  Do the following example both ways, to check that all this is true.
+
+The data are average age (in days) at the beginning of reproduction in *Daphnia longispina*.  The two groups are from different genetic crosses, there being seven clones within each group.
+
+```{r daphnia}
+daphnia <- read.csv("daphnia.csv")
+t(daphnia)
+t.test(age ~ group, data = daphnia)
+anova(lm(age ~ group, data = daphnia))
+```
+
+## 2. Insects
+
+Suppose insects were reared in the laboratory at various temperatures, and their development time (in days) was recorded.  Of particular interest to the laboratory technician is whether temperatures 20^0^C and 16^0^C have any difference of means.
+
+Analyse the experiment (i.e. do the overall test, the ANOVA), both by using your calculator and by using SAS.  (Do you get the same answers?)  Check the ANOVA assumptions graphically.  Test for significant differences between the 16^0^C and 20^0^C groups.  Graph the data: $y = \text{development time}$, $x = \text{temperature}$.  Does the response look linear?  How else might the experiment have been analysed?
+
+```{r insects}
+insects <- read.csv("insects.csv")
+insects$temperature <- factor(insects$temperature)
+dg.anova.oneway(time ~ temperature, data = insects)
+ggplot(insects, aes(as.integer(as.character(temperature)), time)) + geom_point()
+```
+
+Might have been analysed by regression.
+
+## 3. Washing products
+
+This is exploratory research, with data from Petersen's book.
+
+Some industrial chemists want to study the effectiveness of a number of washing products in removing soil from cloth during a typical washing process.  They use 21 bed sheets, soiled in a standard way, and randomly select three sheets for each of the seven treatments.  After a standard wash cycle, they measure the amount of soil removed from each sheet.
+
+Do the overall ANOVA and the Tukey test of all possible pairwise comparisons.  Check the diagnostic graphs for validity of the analysis.  Do a Kruskal-Wallis test if it seems necessary.
+
+```{r washing}
+washing <- read.csv("washing.csv")
+washing$product <- factor(washing$product)
+dg.anova.oneway(dirt_removed ~ product, data = washing)
+```
+
+## 4. Reaction time
+
+Five STAT 291 students recorded their reaction time to a sound stimulus (using equipment in the Laby foyer).  After three initial trials to get used to the equipment, they each recorded three response times.
+
+What percentage of the total variation in the responses is due to between-student differences?  What is the remaining percentage due to within-student differences?
+
+```{r reaction}
+reaction <- read.csv("reaction.csv")
+reaction$student <- factor(reaction$student)
+reaction.anova <- dg.anova.oneway(time ~ student, reaction)
+reaction.anova$anova
+kable(reaction.anova$anova)
+
+sigmasquared <- reaction.anova$anova[2, "Mean Sq"]
+r <- 3
+rsigmasquareda <- reaction.anova$anova[1, "Mean Sq"] - sigmasquared
+sigmasquareda <- rsigmasquareda / r
+totalvariation <- sigmasquared + sigmasquareda
+sigmasquared / totalvariation * 100 # within students
+sigmasquareda / totalvariation * 100 # between students
+```
+
+## 5. Tree rings
+
+Tree ring widths are determined by various causes.  Ten trees of the species *figmentum imaginationem*, of similar age but from different locations, each have two sample cores drilled in them, and the ring from the 1984/5 growing season is  measured.
+
+Find the percentage of the variability in ring width caused by tree-to-tree variation, and the percentage of within-tree variation.
+
+(**Note:** In practice, scientists also look at the year-to-year variation by looking at successive rings in the same core.  A tree species which shows a large component of variance due to year-to-year effects is a good species to choose when doing dendrochronology.  This is the science of dating events by using tree-ring information.)
+
+```{r treerings}
+tree <- read.csv("treerings.csv")
+tree$tree <- factor(tree$tree)
+tree.anova <- dg.anova.oneway(width ~ tree, tree)
+kable(tree.anova$anova)
+sigmasquared <- tree.anova$anova[2, "Mean Sq"]
+r <- 2
+rsigmasquareda <- tree.anova$anova[1, "Mean Sq"] - sigmasquared
+sigmasquareda <- rsigmasquareda / r
+sigmasquared
+sigmasquareda
+totalvariance <- sigmasquared + sigmasquareda
+sigmasquared / totalvariance # within (all) trees
+sigmasquareda / totalvariance # between trees (depends on the tree)
+```
+
+## 6. Rope making
+
+In a rope-making factory, the production manager wishes to obtain ropes of uniformly high strength.  She wonders to what extent the variability in rope strength is caused by differences between machines, as opposed to other causes like occasional weakness in the raw fibres.  If there is a large machine-to-machine variation, she will concentrate resources on machine maintenance, and the purchase of better quality machines.  If there is large variation from other sources, she will look more closely at the quality of fibres from various suppliers.
+
+An experiment is run, in which four rope-making machines are selected at random from the large number in the factor.  Five lengths of rope are spun on each machine, and the breaking strength of each rope is measured.
+
+Find the components of variance due to machine differences and due to other sources.
+
+```{r rope}
+rope <- read.csv("rope.csv")
+rope$machine <- factor(rope$machine)
+rope.anova <- dg.anova.oneway(strength ~ machine, rope)
+kable(rope.anova$anova)
+r <- 5
+sigmasquared <- rope.anova$anova[2, "Mean Sq"]
+sigmasquareda <- (rope.anova$anova[1, "Mean Sq"] - sigmasquared) / r
+totalvariance = sigmasquared + sigmasquareda
+sigmasquared / totalvariance # within machines (other causes)
+sigmasquareda / totalvariance # between machines
+```
