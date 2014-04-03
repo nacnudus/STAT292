@@ -1,5 +1,8 @@
+require(ggplot2)
+require(knitr)
+
 dg.anova.oneway <- function(formula, data, levene = "squared"){
-    par(ask = TRUE)
+    #par(ask = TRUE)
 
     # Understand the model
     mf <- model.frame(formula, data)
@@ -56,7 +59,7 @@ dg.anova.oneway <- function(formula, data, levene = "squared"){
 }
 
 dg.anova.twoway <- function(formula, data, levene = "squared"){
-    par(ask = TRUE)
+    #par(ask = TRUE)
 
     # Understand the model
     mf <- model.frame(formula, data)
@@ -96,7 +99,7 @@ dg.anova.twoway <- function(formula, data, levene = "squared"){
 }
 
 dg.anova.threeway <- function(formula, data, levene = "squared"){
-    par(ask = TRUE)
+    #par(ask = TRUE)
 
     # Understand the model
     mf <- model.frame(formula, data)
