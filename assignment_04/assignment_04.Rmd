@@ -1,0 +1,148 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+opts_chunk$set(dpi = 300)
+```
+
+```{r packages, include = FALSE}
+require(plyr)
+require(knitr)
+require(ggplot2)
+require(agricolae) # for HSD.test (Tukey test)
+```
+
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
+# STAT 292 Assignment 3
+
+## Personality types
+
+### a) Why is this a random effects (not fixed effects) design?
+
+It is a random effects design because it tests only four personality types chosen at random from many possible types.  It is a balanced design because an equal number of subjects has been observed for each personality type.
+
+### b) Report
+
+```{r personality, include = include, echo = echo}
+source("../computing_notes/helper_functions.R")
+personality <- read.csv("personality.csv")
+personality.full <- dg.anova.oneway(score ~ type, data = personality)
+drop1(personality.full$lm, test = "F")
+```
+
+#### Model equation
+
+$$Y_{ij} = \mu + \mathrm{A} _i + E_{ij}$$
+
+where $Y_{ij}$ is the $j$^th^ response in Methods $i$, 
+
+$\mu$ is a parameter for an overall mean,
+
+$A_i$ is a random variable for the random effect of Method $i$, with $\mathrm{N}(0, \sigma^2_A)$ distribution,
+
+$E_{ij}$ is the error term for response $j$ in Method $i$, with $\mathrm{N}(0, \sigma^2)$ distribution.  We assume that this term has an $\mathrm{N}(0, \sigma^2)$ distribution and that the errors are independent.
+
+#### Assumptions
+
+We assume normality, constant variance and independence.
+
+The printout shows that it is reasonable to assume constant variance: there is an approximately equal vertical spread in the boxplots (though type 3 may have a slightly tighter concentration about the mean), Levene's test has $p =$ `r personality.full$levene$"Pr(>F)"[1]` (greater than 0.05), so accept null hypothesis of equal variances ($H_0: \sigma^2_1 = \sigma^2_2 = \sigma^2_3 = \sigma^2_4$), and the plot of residual versus predicted values has a level band across the page.
+
+There are some doubts about the assumption of normality: the boxplots are reasonably symmetrical (the means and medians are close to one another), but the Q-Q plot of residual versus quantile of the normal distribution is not quite straight. 
+
+We cannot check the independence of the errors from inspecting the data.  However, the random selection of subjects supports an assumption of independence of the residual errors, the random selection of four personality types supports the assumption of independence of the random variable $A_i$, and the independence of the $A_i$ from $E_{ij}$ is supported since the subjects were randomly assigned within each personality type.  We must trust that the experiment was run in such a way as to preserve that independence, e.g. subjects should not be allowed to communicate while taking the test.
+
+#### ANOVA
+
+```{r personality_anova_table, results = "asis", include = TRUE, echo = echo}
+kable(personality.full$anova[, 1:3])
+```
+
+```{r personality_anova, echo = FALSE, include = include}
+MSE <- personality.full$anova$"Mean Sq"[2]
+MST <- personality.full$anova$"Mean Sq"[1]
+r <- 10
+sigmahatsquareda <- (MST - MSE) / r
+totalvariance <- sigmahatsquareda + MSE
+percentageunexplained <- 100 * MSE / totalvariance
+percentageduetotype <- 100 - percentageunexplained
+```
+
+From the ANOVA printout,
+
+i. $\hat{\sigma}^2 =$ `r MSE`
+
+ii. $\hat{\sigma}^2 + r\hat{\sigma}^2_A =$ `r MST`, hence (using $r =$ `r r`), $\hat{\sigma}^2_A =$ (`r MST` $-$ `r MSE`) / `r r` $=$ `r sigmahatsquareda`. 
+
+iii. Percentage unexplained $= 100 * \text{MSE} / (\hat{\sigma}^2_A + \text{MSE}) = $ 100 times `r MSE` / `r totalvariance` = `r percentageunexplained`%, and percentage due to type $=$ `r percentageduetotype`%.
+
+#### Interpretation
+
+If the assumptions are correct, then personality type could be important here, as it accounts for `r percentageduetotype`% of the test score, which could be the difference between grades in an exam.  The importance could also be that the test could be redesigned to increase its fairness across different personality types.
+
+### Phytoremediation
+
+### a) What kind of design is this?  Give the model equation, including an interaction term.
+
+This is a two-way factorial design with two factors.  It is complete because every possible treatment has been applied an equal number of times.  The effects model equation is
+
+$$Y_{ijk} = \mu + \alpha _i + \beta _j + (\alpha\beta)_{ij} + E_{ijk}$$
+
+where $\mu$, $\alpha _i$, $\beta _j$ and $(\alpha\beta)_{ij}$ are parameters with the following constraints:
+
+$$\sum_{i = 1}^{a} \alpha_i = 0$$
+
+$$\sum_{j = 1}^{b} \beta_i = 0$$
+
+$$\text{for each } j = 1, 2, \dots, b \text{, } \sum_{i = 1}^{a} (\alpha\beta)_{ij} = 0$$
+
+$$\text{for each } i = 1, 2, \dots, a \text{, } \sum_{j = 1}^{b} (\alpha\beta)_{ij} = 0$$
+
+We assume that the error term $E_{ijk}$ has an $\mathrm{N}(0, \sigma^2)$ distribution and that the errors are independent.
+
+#### Hypotheses of the interaction test
+
+$H_0:$ For all $i$ and $j$, $(\alpha\beta)_{ij} = 0$ versus $H_A:$ At least one $(\alpha\beta)_{ij}$ is non-zero.
+
+$H_0$ in words: the effect of species on the uptake of zinc is unaffected by the acidity of the soil, and vice-versa.
+
+#### Assumptions
+
+```{r phytoremediation_anova, echo = FALSE, include = include}
+source("../computing_notes/helper_functions.R")
+phyto <- read.csv("phytoremediation.csv")
+phyto$logppm <- log(phyto$ppm)
+phyto.ppm <- dg.anova.twoway(ppm ~ pH * plant, data = phyto)
+phyto.logppm <- dg.anova.twoway(logppm ~ pH * plant, data = phyto)
+```
+
+We must assume normality, constant variance, and independence of the errors both from each factor and from the interaction term.
+
+Because we suspect interaction, boxplots and Levene's test cannot be used as diagnostic tests.  The response variable (uptake of zinc) is continuous.  From the SAS printout, the Q-Q plot does not follow a very straight line.  We cannot assume normality in this case.  The plot of residuals versus fitted values shows a clear funnelling effect, showing that higher variance is associated with higher values.  We therefore take a log transformation of the response variable, as this may bring about constant variance.
+
+The plot of residuals versus fitted values for the log-transformed data shows a fairly level band, supporting the assumption of constant variance.  The Q-Q-plot of the log-transformed data is closer to a straight line, supporting the assumption of normality.  Because these two assumptions are satisfied, we use the log-transformed data for the ANOVA.
+
+Without any special knowledge of how the experiment was performed, we cannot check for independence.  We would like to know whether the plants were randomly assigned to areas of each soil type, and that other factors such as time of planting and location of plantations were controlled or randomised.
+
+#### Hypotheses, Conclusions
+
+```{r phytoremediation_anova_table, results = "asis", include = TRUE, echo = echo}
+kable(phyto.logppm$anova)
+```
+
+We start with the interaction test:
+
+$H_0:$ There is no interaction (all $(\alpha\beta)_{ij} = 0$) versus 
+
+$H_A:$ There is interaction (at least one $(\alpha\beta)_{ij} \neq 0$).
+
+As seen in the ANOVA table above, the interaction is significant at the 5% level ($p =$ `r phyto.logppm$anova$"Pr(>F)"[3]` $< 0.05$), so we reject $H_0$ at the 5% significance level.
+
+The interpretation that the factors of plant species and acidity of soil interact in their effect on the uptake of zinc.  We cannot discuss the effect of soil acidity on zing uptake without also specifying specifying the species of plant, and vice versa.
+
+Since there is interaction, we do not try to interpret the main effects terms in the ANOVA table.  Instead we focus on more detailed interpretation of the interaction, using the interaction graph in the SAS printout.
+
+The significant interaction shows up as non-parallel lines in the interaction graph, in particular, the lines for lettuce and Martin red fescue.  We suspect (considering it was stated so in the question) that the zinc uptake of lettuce is not affected by the acidity of the soil, while the zinc uptake of Martin red fescue is higher when the soil is acidic than otherwise.
+
