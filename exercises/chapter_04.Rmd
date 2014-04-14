@@ -1,0 +1,114 @@
+```{r setup, include = FALSE}
+opts_chunk$set(dpi = 300)
+require(knitr)
+require(ggplot2)
+source("../computing_notes/helper_functions.R")
+```
+# STAT 292 Chapter 4 Exercises
+
+## 1. Arsenic
+
+$Y =$ concentration of arsenic (ppm) in the hair, averaged for a group of 10-year-old boys.  $x =$ distance (km) south-west of a power plant burning coal with a high arsenic content.
+
+```{r arsenic}
+arsenic <- read.csv("arsenic.csv")
+arsenic.lm <- lm(Y ~ x, arsenic)
+```
+
+a) Draw a scattergram of the data
+
+```{r arsenic-scatterplot}
+plot(Y ~ x, arsenic)
+```
+
+b) Fit a regression line through the data.  Give the result of the test of $H_0: \beta_1 = 0$ against a two-sided alternative.  How could the SAS printout results be used to do a one-sided test, the alternative being $H_A: \beta_1 < 0$?
+
+```{r arsenic-summary}
+summary(arsenic.lm)
+```
+
+The test is significant at the 5% level but not at the 1% level.  To do a one-sided test, the $p$ value could be divided by two.
+
+c) Plot diagnostic graphs and comment on them.
+
+```{r arsenic-diagnostic}
+plot(arsenic.lm$fit, rstudent(arsenic.lm))
+plot(arsenic.lm, which = c(2, 4))
+```
+
+Cook's distance is okay, possible outlier below the band in the RStudent graph, creating a curve in the Q-Q plot.
+
+### Design
+
+This is a simple linear regression with the theoretical model:
+
+$Y = \beta_0 + \beta_ix + E$
+
+Where Y and E are random variables, $E$ is from the $\mathrm{N}(0, sigma^2)$ distribution independently of the errors and of $x$, $x$ are known without errors, and the $\beta$ are unknown parameters, $Y$ = concentration of arsenic (ppm) in the hair, and $x$ is the distance in kilometers south-west of a coal power plant.
+
+The fitted model is the line:
+
+$\hat{Y} = \widehat{\beta_0} + \widehat{\beta_1}x$
+
+## 2. Orange juice
+
+Early attempts to produce acceptable frozen orange juice failed because the juice separated into a liquid and a solid fraction shortly after water was added to the frozen concentrate.  A number of additives were tried in an attempt to retard the separation.  In one experiment, $x =$ amount of enzyme, in ppm, and $y =$ time to separation of the juice.  There were 20 samples.
+
+### Design
+
+This is a simple linear regression with the theoretical model:
+
+$Y = \beta_0 + \beta_1x + E$
+
+Where $Y$ and $E$ are random variables, $E$ is from a $\mathrm{N}(0, sigma^2)$ distribution, independently of the errors and the $x$ values, $x$ are known with out errors, and $\beta$ are unknown parameters.  $x$ is the level of enzyme (ppm), and $Y$ is the time to separation in minutes.
+
+### Assumptions
+
+Normality, constant variance and independence.
+
+```{r juice}
+juice <- read.csv("juice.csv")
+juice.lm <- lm(time ~ enzyme, juice)
+plot(time ~ enzyme, juice)
+plot(juice.lm$fit, rstudent(juice.lm))
+plot(juice.lm, which = c(2, 4))
+summary(juice.lm)
+
+juice$logtime <- log(juice$time)
+juice.lmlogtime <- lm(logtime ~ enzyme, juice)
+plot(time ~ enzyme, juice)
+plot(juice.lmlogtime$fit, rstudent(juice.lmlogtime))
+plot(juice.lmlogtime, which = c(2, 4))
+summary(juice.lmlogtime)
+```
+
+## 3. Hypotensive drug
+
+### Design
+
+This is a multiple regression with the theoretical model:
+
+$Y = \beta_0 + \beta_1x + \beta_2x_2 + E$
+
+### First t test
+
+$H_0: \beta_1 = 0$ versus $H_A: \beta_1 \neq 0$
+
+#### Reduced model
+
+$Y = \beta_0 + \beta_2x_2 + E$
+
+### Second t test
+
+$H_0: \beta_2 = 0$ versus $H_A: \beta_2 \neq 0$
+
+#### Reduced model
+
+$Y = \beta_0 + \beta_1x_1 + E$
+
+### ANOVA
+
+#### Reduced model
+
+$Y = \beta_0 + E$
+

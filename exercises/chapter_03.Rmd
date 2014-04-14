@@ -1,0 +1,135 @@
+```{r setup, include = FALSE}
+opts_chunk$set(dpi = 300)
+require(knitr)
+require(ggplot2)
+source("../computing_notes/helper_functions.R")
+```
+# STAT 292 Chapter 3 Exercises
+
+## 1. Plant growth -- leaf area
+
+A 2 x 2 x 5 factorial experiment is run to examine the response (Y) of plant size when grown under various conditions.
+
+#### Factor A:
+
+Photoperiod (number of hours of light per day), 10 or 20,
+
+#### Factor B:
+
+Atmospheric proportion of CO_2, 3% or 6%,
+
+#### Factor C:
+
+Plotting Medium (five types).
+
+```{r leaf}
+leaf <- read.csv("leaf.csv", colClasses = c("factor", "factor", "factor", "numeric"))
+leaf
+```
+
+The response Y is the leaf area (sq. cm.) after four weeks of growth.  Assuming that the only interaction likely to be present is that between photoperiod and CO_2 level, give the ANOVA table and discuss and interpret the results.
+
+```{r leaf-anova}
+leaf.lm <- lm(area ~ hours + co2 + medium + (hours * co2), data = leaf)
+leaf.anova <- anova(leaf.lm)
+
+plot(leaf.lm, which = 1:2)
+```
+
+```{r leaf-anova-table, results = "asis"}
+kable(leaf.anova)
+```
+```
+
+### Design
+
+This is a balanced 2 x 2 x 5 factorial ANOVA with `r nrow(leaf)` observations.  Factor `photoperiod` is at two levels {10, 20}, factor `CO2` is at two levels {3, 6}, and factor `potting medium` is at five levels {1, 2, 3, 4, 5}.
+
+### Model equation
+
+$Y_{ijkm} = \mu + \alpha_i + \beta_j + \gamma_k + (\beta\gamma)_{jk} + E_{ijkm}$
+
+Where $Y_{ijkm}$ is a random variable for the $m$^th^ response (leaf area in cm^2^) with factor A `photoperiod` at level $i$, factor B `CO2` at level $j$, and factor C `potting medium` at level $k$. $\mu$ is a parameter for the overall mean, $\alpha$, $\beta$ and $\gamma$ are parameters for each of the factors, $(\beta\gamma)_{jk}$ is a parameter for the interaction of factors B and C, and $E$ are errors from the $\mathrm{N}(0, \sigma^2)$ distribution, independently.
+
+### Assumptions
+
+We assume normality, constant variance and independence.  The constant variance assumption seems to be supported because the plot of residuals versus fitted values shows a fairly level band across the page.  There is very slight funneling, suggesting that a log transformation of $Y$ might be appropriate (as it often is for areas), but it does not seem necessary this time.  The normality assumption appears to be supported by the fairly straight line on the Q-Q plot.  Some stairs and steps on the plot may be due to rounding.
+
+We cannot test independence and would like to know exactly how the experiment was performed.  For example, whether the plants were randomly assigned to each factor, and whether the plants were a similar age at the beginning of the experiment.
+
+### Interaction hypothesis
+
+We first test for a suspected interaction between factors B and C (`photoperiod` and `CO2`).
+
+$H_0: \text{ All } (\beta\gamma)_{jk} = 0$ versus $H_A: \text{ Any } (\beta\gamma)_{jk} \neq 0$ 
+
+```{r leaf-interaction}
+with(leaf, interaction.plot(hours, co2, area))
+```
+
+From the ANOVA table, the interaction is significant at the 5% level ($p =$ `r coef(leaf.anova)[4, "Pr(>F)"]` $< 0.05$).  A significant interaction of `photoperiod` and `CO2` has been found on the leaf area of the plants after four weeks of growth, and we do not proceed to analyse the main effects.
+
+From the interaction plot, the lines are not quite parallel. The effects are synergistic; an increase in both photoperiod and CO_2 gives an added boost to the area of the leaves after four weeks of growth.
+
+## Verbal skills
+
+In a preliminary investigation of Verbal skills of eight-year-olds, the factors of gender, degree of social interaction and interest in reading are incorporated in a 2 x 2 x 2 factorial design.  Sixteen children take part in the trial.
+
+```{r verbal}
+verbal <- read.csv("verbal.csv")
+verbal.lm <- lm(score ~ sex * social * interest - (sex:social:interest), data = verbal)
+verbal.anova <- anova(verbal.lm)
+
+plot(leaf.lm, which = 1:2)
+```
+
+```{r verbal-anova, results = "asis"}
+kable(verbal.anova)
+```
+
+### Design
+
+This is a balanced 2 x 2 x 2 factorial design with 16 observations. Factor A `sex` was at two levels {male, female}, factor B `social interaction` at two levels {low, high}, and factor C `interest in reading` at two levels {low, high}.  The factors were entered into the model in that order, and all interactions except for the three-way interaction were included.
+
+### Model equation
+
+$Y_{ijkm} = \mu + \alpha_i + \beta_j + \gamma_k + (\alpha\beta)_{ij} + (\alpha\gamma)_{ik} + (\beta\gamma)_{jk} + E_{ijkm}$
+
+$Y_{ijkm}$ is a random variable for the $m$^th^ response at factor A level $i$, factor B level $j$, and factor C level $k$.  $\mu$ is a parameter for the overall mean.  $E$ is a random variable for the errors, from the $\mathrm{N}(0, \sigma^2)$ distribution, independently.  The other parameters are parameters for the effects of each factor at each level, and for the interactions of each factor.
+
+### Assumptions
+
+We assume normality, constant variance and independence.  The constant variance assumption seems to be supported because the plot of residuals versus fitted values shows a fairly level band across the page.  There is very slight funneling, suggesting that a log transformation of $Y$ might be appropriate, but it does not seem necessary this time.  The normality assumption appears to be supported by the fairly straight line on the Q-Q plot.
+
+We cannot test independence and would like to know exactly how the experiment was performed.  For example, whether the children were randomly assigned to each factor, and whether the children were at similar ages at the beginning of the experiment.
+
+### Interaction hypotheses
+
+$H_0: \text{ All } \alpha\beta)_{ij} = 0$ versus $H_A: \text{ Any } (\alpha\beta)_{ij} \neq 0$
+
+$H_0: \text{ All } \alpha\gamma)_{ik} = 0$ versus $H_A: \text{ Any } (\alpha\gamma)_{ik} \neq 0$
+
+$H_0: \text{ All } \beta\gamma)_{jk} = 0$ versus $H_A: \text{ Any } (\beta\gamma)_{jk} \neq 0$
+
+From the ANOVA table, one interaction is significant at the 5% level, between `social interactio` and `interest in reading`.
+
+```{r verbal-interaction}
+with(verbal, interaction.plot(social, interest, score))
+```
+
+From the interaction plot, the lines are not parallel.  The interaction is synergistic.  When both `social interaction` and `interest in reading` are high, there is an extra boost to the score.
+
+Since there is an interaction between those two factors, we do not examine their main effects.  However, we can examine the main effects of `sex` because it does not interact with the other factors.
+
+### Hypothesis of main effects of `sex`
+
+$H_0: \text{ All } \alpha_i = 0$ versus $H_A: \text{ Any } \alpha_i \neq 0$
+
+From the ANOVA table, `sex` is significant at the 5% level.
+
+```{r verbal-sex}
+boxplot(score ~ sex, verbal)
+```
+
+From the boxplot, a comparison of the means shows that, in general, the females scored more highly than the males.
+
