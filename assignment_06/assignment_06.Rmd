@@ -1,0 +1,261 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+opts_chunk$set(dpi = 300)
+```
+
+```{r packages, include = FALSE}
+```
+
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
+# Assignment 6
+
+1. Which of the following variables are categorical:
+
+   a) Age (years).
+   No.
+
+   b) Attitude toward gun control (favour, or oppose).
+   Yes.
+
+   c) Smoker (yes or no).
+   Yes.
+
+   d) Anxiety rating (none, mild, moderate, severe, very severe).
+   Yes.
+
+   e) Systolic blood pressure (millimetres of mercury).
+   No.
+
+   f) Clinic location (London, Boston, Auckland, Montreal).
+   Yes.
+
+   g) Level of calcium in the blood (micrograms per millilitre).
+   No.
+
+2. Let the number of employed in a group of four be a binomial random variable $Y$ with $n = 4$ and $p = 0.20$.  (Note: $p =$ probability of being employed for each of the persons in the group.)
+
+   a) What different values can $Y$ take on?
+   $Y = 0, 1, ..., 4$
+
+   b) Use a calculator to obtain the following (1) $P(Y = 1)$ (2) $P(Y \geq 1)$.
+
+\begin{align}
+n &= 4 \\
+p &= 0.2 \\
+r &= 1
+\end{align}
+
+\begin{align}
+P(Y = 1) &= {n \choose r} p^r(1 - p)^{n - r} \\
+&= {4 \choose 1} 0.2^1(1 - 0.2)^{4 - 1} \\
+&= 4 \times 0.2 \times 0.8^3 \\
+&= 4 \times 0.2 \times 0.8^3 \\
+&= `r n = 4; p = 0.2; r = 1; choose(n, r) * p^r * (1 - p)^(n - r)`
+\end{align}
+
+\begin{align}
+P(Y \geq 1) &= 1 - P(Y = 0) \\
+r &= 0 \\
+P(Y = 0) &= {n \choose r} p^r(1 - p)^{n - r} \\
+&= {4 \choose 0} 0.2^0(1 - 0.2)^{4 - 0} \\
+&= 1 \times 1 \times 0.8^4 \\
+&= `r n = 4; p = 0.2; r = 0; x <- choose(n, r) * p^r * (1 - p)^(n - r); x` \\
+P(Y \geq 1) &= 1 - P(Y = 0) \\
+&= 1 - `r x` \\
+&= `r 1 - x`
+\end{align}
+
+```{r 2-b-slow, include = FALSE}
+P_Y_eq <- function(n, p, r) {
+choose(n, r) * p^r * (1 - p)^(n - r)
+}
+P_Y_eq <- Vectorize(P_Y_eq)
+
+P_Y_geq_1 <- P_Y_eq(n = 4, p = 0.2, r = 1)
+P_Y_geq_1 
+```
+
+   c) Use SAS to obtain individual probabilities of $Y$.  Attach the SAS results.
+
+```{r 2-c, results = "asis", echo = echo}
+x <- (data.frame(0:4, dbinom(0:4, size = 4, prob = 0.2)))
+colnames(x) <- c("y", "P(Y=y)")
+kable(x)
+```
+
+   d) Obtain $E(Y)$ and $Var(Y)$.
+
+\begin{align}
+E(Y) &= np \\
+&= 4 \times 0.2 \\
+&= `r n * p`
+\end{align}
+
+\begin{align}
+Var(Y) &= np(1 - p) \\
+&= 4 \times 0.2 * (1 - 0.2) \\
+&= 4 \times 0.2 * 0.8 \\
+&= `r n * p * (1 - p)`
+\end{align}
+
+   e) Suppose we change $p$ to be $0.8$.  Re-do (b).
+
+\begin{align}
+n &= 4 \\
+p &= 0.8 \\
+r &= 1
+\end{align}
+
+\begin{align}
+P(Y = 1) &= {n \choose r} p^r(1 - p)^{n - r} \\
+&= {4 \choose 1} 0.2^1(1 - 0.8)^{4 - 1} \\
+&= 4 \times 0.2 \times 0.2^3 \\
+&= 4 \times 0.2 \times 0.2^3 \\
+&= `r n = 4; p = 0.8; r = 1; choose(n, r) * p^r * (1 - p)^(n - r)`
+\end{align}
+
+\begin{align}
+P(Y \geq 1) &= 1 - P(Y = 0) \\
+r &= 0 \\
+P(Y = 0) &= {n \choose r} p^r(1 - p)^{n - r} \\
+&= {4 \choose 0} 0.2^0(1 - 0.8)^{4 - 0} \\
+&= 1 \times 12\times 0.2^4 \\
+&= `r n = 4; p = 0.8; r = 0; x <- choose(n, r) * p^r * (1 - p)^(n - r); x` \\
+P(Y \geq 1) &= 1 - P(Y = 0) = 1 - `r x` = `r 1 - x`
+\end{align}
+
+```{r 2-e-slow, include = FALSE}
+P_Y_eq <- function(n, p, r) {
+choose(n, r) * p^r * (1 - p)^(n - r)
+}
+P_Y_eq <- Vectorize(P_Y_eq)
+
+P_Y_geq_1 <- P_Y_eq(n = 4, p = 0.8, r = 1)
+P_Y_geq_1 
+```
+
+3. For each of the following cases, indicate whether the use of a normal approximation to the binomial distribution is appropriate.
+
+   a) $n = 100 $ and $p = 0.05$.  $np =$ `r 100 * 0.05` $\geq 5$ and $n(1 - p) =$ `r 100 * (1 - 0.05)` $\geq 5$ so yes, the normal approximation to the binomial distribution is appropriate.
+   b) $n = 30 $ and $p = 0.1$.  $np =$ `r 30 * 0.1` $\geq 5$ so no, the normal approximation to the binomial distribution is not appropriate.
+   c) $n = 30 $ and $p = 0.9$.  $np =$ `r 30 * 0.9` $\geq 5$ but $n(1 - p) =$ `r 30 * (1 - 0.9)` $\geq 5$ so no, the normal approximation to the binomial distribution is not appropriate.
+   d) $n = 20 $ and $p = 0.6$.  $np =$ `r 20 * 0.6` $\geq 5$ and $n(1 - p) =$ `r 20 * (1 - 0.6)` $\geq 5$ so yes, the normal approximation to the binomial distribution is appropriate.
+
+4. Let $X$ be a normal random variable with mean 3 and variance 2.  The standard deviation of $X$ is $\sqrt{2} = 1.414$.  We write $X \sim \mathrm{N}(3, 2)$.  Also, we usually use the notation $Z$ to represent a standard normal random variable that has mean 0 and variance 1, that is, $Z \sim \mathrm{N}(0, 1)$.  Find the following probabilities.
+
+   a) $P\left(X \leq 1\right)$.
+\begin{align}
+P(X \leq 1) &= P\left(\frac{X - \mu}{\sigma} \leq \frac{1 - \mu}{\sigma}\right) \\
+&= P\left(Z \leq \frac{1 - 3}{\sqrt{2}}\right) \\
+&= P\left(Z \leq \frac{-2}{\sqrt{2}}\right) \\
+&= P\left(Z \leq `r z <- -2 / sqrt(2); z`\right)
+\end{align}
+\text{From the standard normal tables using } z = -1.41
+\begin{align}
+P\left(Z \leq -1.41\right) &= 1 - \left(0.5 + P\left(0 \leq Z \leq 1.41\right)\right) \\
+&= 1 - \left(0.5 + 0.4207\right) \\
+&= `r pz <- 1 - (0.5 + 0.4207); pz`
+\end{align}
+\text{Or on the calculator}
+\begin{align}
+&= `r pnorm(1, 3, sqrt(2))`
+\end{align}
+
+   b) $P\left(0 \leq X \leq 1\right)$.
+\begin{align}
+P\left(0 \leq X \leq 1\right) &= P\left(\frac{0 - \mu}{\sigma} \leq \frac{X - \mu}{\sigma} \leq \frac{1 - \mu}{\sigma}\right) \\
+&= P\left(\frac{0 - 3}{\sqrt{2}} \leq Z \leq \frac{1 - 3}{\sqrt{2}}\right) \\
+&= P\left(\frac{-3}{\sqrt{2}} \leq Z \leq \frac{-2}{\sqrt{2}}\right) \\
+&= P\left(`r z1 = -3 / sqrt(2); z1` \leq Z \leq `r z2 <- -2 / sqrt(2); z2`\right) \\
+&= P\left(X \leq 1\right) - P\left(X \leq 0\right) \\
+&= P\left(Z \leq `r z2`\right) - P\left(Z \leq `r z1`\right) \\
+\end{align}
+\begin{align}
+\text{From the standard normal tables using } Z_1 = -2.12 \text{ and } Z_2 = -1.41
+\end{align}
+\begin{align}
+P\left(Z \leq -1.41\right) &= `r pz` \text{ (using the result from (a) above)}\\
+P\left(Z \leq -2.12\right) &= 1 - \left(0.5 + P\left(0 \leq Z \leq 2.12\right)\right) \\
+&= 1 - \left(0.5 + 0.4830\right) \\
+&= `r pz2 <- 1 - (0.5 + 0.4830); pz2` \\
+`r pz` - `r pz2` &= `r pz - pz2`
+\end{align}
+\text{Or on the calculator}
+\begin{align}
+&= `r pnorm(1, 3, sqrt(2)) - pnorm(0, 3, sqrt(2))`
+\end{align}
+
+   c) $P\left(X \geq 2\right)$.
+\begin{align}
+P(X \geq 2) &= P\left(\frac{X - \mu}{\sigma} \geq \frac{2 - \mu}{\sigma}\right) \\
+&= P\left(Z \geq \frac{2 - 3}{\sqrt{2}}\right) \\
+&= P\left(Z \geq \frac{-1}{\sqrt{2}}\right) \\
+&= P\left(Z \geq `r z <- -1 / sqrt(2); z`\right)
+\end{align}
+\text{From the standard normal tables using } z = -0.71
+\begin{align}
+P\left(Z \leq -0.71\right) &= 0.5 + P\left(0 \leq Z \leq 0.71\right) \\
+&= 0.5 + 0.2611 \\
+&= `r pz <- 0.5 + 0.2611; pz`
+\end{align}
+\text{Or on the calculator}
+\begin{align}
+&= `r 1 - pnorm(2, 3, sqrt(2))`
+\end{align}
+
+5. In a survey, one of the questions was, "If you won 10 million dollars in the lottery would you continue to work, or would you stop working?"  Suppose the true proportion of people who would continue to work is 59% and assume that the binomial situation applies.  In a group of 30 lottery winners who won 10 million dollars,
+
+   a) What is the mean and standard deviation of the number of lottery winners who won 10 million dollars who would continue to work (up to 2dp)?
+\begin{align}
+n &= 30 \\
+p &= 0.59 \\
+\mu &= E(Y) \\
+&= np \\
+&= 30 \times 0.59 \\
+&= `r xmean <- 30 * 0.59; sprintf("%.2f", xmean)` \\
+\sigma &= \sqrt{Var(Y)} \\
+&= \sqrt{np(1 - p)} \\
+&= \sqrt{30 \times 0.59 \times (1 - 0.59)} \\
+&= \sqrt{30 \times 0.59 \times (`r 1 - 0.59`)} \\
+&= \sqrt{`r xmean * (1 - 0.59)`} \\
+&= `r xsd <- sqrt(xmean * (1 - 0.59)); sprintf("%.2f", xsd)`
+\end{align}
+
+   b) Find the probability that exactly 20 of them would continue working, using a calculator (up to 3dp).
+
+\begin{align}
+P(Y \leq 30) = `r sprintf("%.3f", dbinom(20, 30, 0.59))`
+\end{align}
+
+   c) Find the probability that less than or equal to 20 of them would continue working (up to 3dp).
+
+      i) Report the **exact** probability.
+\begin{align}
+P(Y \leq 20) = `r sprintf("%.3f", sum(dbinom(1:20, 30, 0.59)))`
+\end{align}
+
+      ii) Report the **approximate** probability using the normal approximation **with** the continuity correction.
+\begin{align}
+P(Y \leq 20) &\approx P(-0.5 \leq Y \leq 20.5) \\
+&= `r sprintf("%.3f", pnorm(20.5, xmean, xsd))`
+\end{align}
+
+   d) Re-do (c) (i) and (ii) for the probability that "less than" 20 of them would continue working.
+
+      i) Report the **exact** probability.
+\begin{align}
+P(Y < 20) = `r sprintf("%.3f", sum(dbinom(1:19, 30, 0.59)))`
+\end{align}
+
+      ii) Report the **approximate** probability using the normal approximation **with** the continuity correction.
+\begin{align}
+P(Y < 20) &\approx P(0.5 < Y < 19.5) \\
+&= `r sprintf("%.3f", pnorm(19.5, xmean, xsd))`
+\end{align}
+
+6. Test the null hypothesis $\mathcal{H}_0: p = 0.4$ against the alternative hypothesis $\mathcal{H}_1: p \neq 0.4$.  Suppose that the $p$-value = 0.02.  What conclusion do you make at the 5% significance level? \newline\newline
+Since the $p$-value ($= 0.02$) is less than $\alpha$ ($= 0.05$), we **reject** $\mathcal{H}_0$.  We can conclude that $p$ is significantly different from 0.4.
