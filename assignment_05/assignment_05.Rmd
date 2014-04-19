@@ -1,0 +1,163 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+opts_chunk$set(dpi = 300)
+```
+
+```{r packages, include = FALSE}
+require(plyr)
+require(knitr)
+require(ggplot2)
+require(agricolae) # for HSD.test (Tukey test)
+source("../computing_notes/helper_functions.R")
+```
+
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
+# Assignment 5
+
+## 1. Comprehension
+
+Children in a school class are given a test of comprehension of English, marked out of 100.  The children are from three different ethnic groups, which is thought to be an important factor.  The question is whether there are sex differences after allowing for ethnicity.
+
+a) Do a two-way ANOVA on the data, presenting your results with the usual headings.  Please include the interaction term in the model, and include an interaction graph and comments in the interpretation section at the end.
+
+```{r comprehension, include = FALSE}
+comprehension <- read.csv("comprehension.csv")
+comprehension.anova <- dg.anova.twoway(score ~ ethnicity * sex, data = comprehension)
+```
+
+### Report
+
+#### Design
+
+This is an unbalanced, 2x3 factorial ANOVA.  There are `r nrow(comprehension)` observations.  `ethnicity` is at three levels, E1, E2 and E3, and `sex` is at two levels, male and female.  The factors have been entered into the ANOVA calculation in that order, followed by the two-way interaction.
+
+#### Model equation
+
+$Y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + E_{ijk}$ 
+
+Where $i$ and $j$ are the levels of factors A (`ethnicity`) and B (`sex`) respectively, and $Y_{ijk}$ is a random variable for the $k$^th^ observation having $A$ at level $i$ and $B$ at level $j$.  $E_{ijk}$ is an error term for the random deviation from the expected value, and is assumed to be from a $\text{N}(0, \sigma^2)$ distribution, independently. $\mu$ is a parameter for the overall mean.
+
+#### Assumptions
+
+We assume independence, constant variance and normality.
+
+The plot of residuals versus fitted values shows a reasonably level band across the page, supporting the assumption of constant variance.  There are no apparent outliers, which supports the assumption of normality, however the quantile-quantile plot is not very straight, indicating that the errors may not be normally distributed.  The assumption of normality is not supported in this case, and a non-parametric test may be more appropriate.
+
+We cannot assume independence without knowing exactly how the experiment was conducted, for example, whether the students were randomly chosen within each ethnic group, and whether they were prevented from interacting during the test.  There is no evidence that any other factors, such as age have been controlled for or randomised.
+
+#### Hypotheses
+
+The hypotheses for the interaction test are:
+
+$H_0:$ All $(\alpha\beta)_{ij} = 0$  (there is no interaction) versus $H_A:$ at least one is non-zero (there is interaction).
+
+#### ANOVA
+
+We use the Type I SS table, which is a sequential ANOVA table.  Each term allows for the preceding terms.
+
+```{r comprehension-anova, results = "asis", echo = echo}
+kable(comprehension.anova$anova)
+```
+
+#### Statistical conclusions
+
+The interaction test is insignificant at the 5% level ($p =$ `r comprehension.anova$anova[3, "Pr(>F)"]` $> 0.05$).  From the interaction plot, the lines for both sexes are roughly parallel, suggesting that there is no interaction.  We conclude that there is no significant interaction between the two factors, and the effects of one can be estimated without knowing the level of the other.
+
+Because there is no interaction, we can consider the main effects.  Both `ethnicity` ($p =$ `r comprehension.anova$anova[1, "Pr(>F)"]` < 0.05) and `sex` (after allowing for `ethnicity`) ($p =$ `r comprehension.anova$anova[2, "Pr(>F)"]` < 0.05) are significant at the 5% level.  From the interaction plot, the slope of both lines shows that the mean score of ethnic group E2 is lower than that of E1, and the mean score of E3 is lower than either of the others.  The vertical difference between each line shows that the mean score of the females is higher than for the males for all ethnicities.  
+
+#### Interpretation
+
+We have found a significant difference of mean comprehension of English between the ethnic groups, and also between the sexes after accounting for `ethnicity.`
+
+b) If a one-way ANOVA is done with factor `sex`, the resulting ANOVA table is:
+
+```{r comprehension-one-way, include = FALSE}
+comprehension.one.way <- dg.anova.oneway(score ~ sex, data = comprehension)
+```
+
+```{r comprehension-one-way-anova, results = "asis", echo = echo}
+kable(comprehension.one.way$anova)
+```
+
+Explain the discrepancy between the outcome here and the test for `sex` in (a).
+
+The test for `sex` in (a) was for a significant difference of means due to `sex`, after accounting for the variation due to `ethnicity`.  (a) was a more sensible test, since the effects of `ethnicity` are significant, and cannot therefore be ignored.  Note that $R^2 =$ `r summary(comprehension.anova$lm)$r.squared` for the test in (a), but $R^2 =$ `r summary(comprehension.one.way$lm)$r.squared` for the test using only `sex`.  With the simplified model we have switched from explaining 82.3% of the variance down to 3.5%.  Also note the rather higher MSE with the overly simple model.  The one-way ANOVA has increased the unexplained variance by excluding `ethnicity` as a useful predictor.  Interestingly, while `sex` is not a useful predictor on its own ($p =$ `r comprehension.one.way$anova[1, "Pr(>F)"]` $> 0.05$), it is useful once `ethnicity` has been accounted for.
+
+## 2. Invertibrates in mussel clumps
+
+The following data are from Peake and Quinn (1993), "Temporal variation in species-area curves for invertebrates in clumps of an intertidal mussel", *Ecography* **16**, 269-277.  The variables here are
+
+$x = log_{10}$ of area of each of 25 mussel clumps (in dm^2^), and
+
+$Y =$ number of different species of macroinvertebrates in each clump.
+
+We must decide if there is a linear relationship between $x$ and $Y$, i.e. if $x$ is a useful linear predictor of $Y$.
+
+a) Do a scatterplot of the data, and comment on whether you think it shows (i) linearity, (ii) constant variance.
+
+```{r mussels, include = FALSE}
+mussel <- read.csv("mussel.csv")
+```
+
+```{r mussel-scatterplotj, echo = echo, include = include}
+plot(species ~ logArea, data = mussel)
+```
+
+(i) The scatterplot shows a positive, linear relationship between the `logArea` of and the number of different species of macroinvertebrates in each clump.
+
+(ii) The scatterplot seems to show a slight widening around the middle (`logArea` between 3.5 and 4.0), indicating non-constant variance, however this is not very marked.
+
+b) Do a simple linear regression, using `logArea` to predict the number of species.  Include (as usual) the model equation, hypotheses, assumptions, diagnostic graphs and comments on whether the analysis is valid, as well as statistical conclusions and interpretation.
+
+#### Model equation
+
+This is a simple regression model with the theoretical model:
+
+$Y = \beta_0 + \beta_ix + E$
+
+Where $Y =$ the number of different species of macroinvertebrates in each clump and $x =$ `logArea`.  $\beta_0$ and $\beta_i$ are unknown parameters, $x$ are known without error, $Y$ and $E$ are random variables, and the errors $E$ are from a $\mathrm{N}(o, \sigma^2)$ distribution and are independent of each other and of $x$.
+
+```{r mussel-model, include = FALSE}
+mussel.lm <- lm(species ~ logArea, data = mussel)
+```
+
+The fitted model is the line:
+
+$\hat{Y} = \widehat{\beta_0} + \widehat{\beta_i}x$ or
+
+$\hat{Y} =$ `r coef(mussel.lm)[1]` $+$ `r coef(mussel.lm)[2]`$x$ 
+
+using the estimates from the SAS output.
+
+#### Assumptions
+
+We must assume normality, constant variance, and independence of the errors both from each factor and from the interaction term.
+
+```{r mussel-diagnostics, include = include}
+plot(mussel.lm$fit, rstudent(mussel.lm))
+plot(mussel.lm, which = c(2, 4))
+```
+
+We assume that the errors come from an $\mathrm{N}(0, \sigma^2)$ distribution, independently of each other and of $x$.  The constant variance assumption seems supported because the plot of Studentized residuals against fitted values shows a fairly level band across the page, though it seems a little narrow on the left.  The Q-Q plot shows a reasonably straight line except for a couple of points in the tails, which supports normality.  The plot of Cook's distance shows that there are no outliers or points of high influence (maximum Cook's distance of about 0.2).  We cannot test for independence and we do not know how the experiment was conducted.
+
+#### Hypotheses
+
+$H_0: Y = \beta_1 = 0$ versus $H_A: \beta_1 \neq 0$.
+
+#### Statistical conclusion
+
+```{r mussel-ttest, include = include}
+mussel.lm.summary <- summary(mussel.lm)
+summary(mussel.lm)
+```
+
+There is a choice of test because only one estimator has been fitted.  The F statistic is `r mussel.lm.summary$fstatistic[1]`, on (`r mussel.lm.summary$fstatistic[2]`, `r mussel.lm.summary$fstatistic[3]`) degrees of freedom.  The t statistic is `r mussel.lm.summary$coefficients[1, "t value"]` on `r mussel.lm.summary$df[2]` degrees of freedom.  With either statistic, $p < 0.0001$, so we reject $H_0$.
+
+#### Interpretation
+
+`logArea` is a useful predictor for the number of different species of mussel found in each clump.  Since the estimate of $\beta_1$ is positive, we conclude that larger `logArea` is associated with a larger number of different species of mussel.
+
