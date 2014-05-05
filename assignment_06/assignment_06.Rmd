@@ -53,7 +53,7 @@ r &= 1
 P(Y = 1) &= {n \choose r} p^r(1 - p)^{n - r} \\
 &= {4 \choose 1} 0.2^1(1 - 0.2)^{4 - 1} \\
 &= 4 \times 0.2 \times 0.8^3 \\
-&= 4 \times 0.2 \times 0.8^3 \\
+&= 0.8^4 \\
 &= `r n = 4; p = 0.2; r = 1; choose(n, r) * p^r * (1 - p)^(n - r)`
 \end{align}
 
@@ -112,9 +112,9 @@ r &= 1
 
 \begin{align}
 P(Y = 1) &= {n \choose r} p^r(1 - p)^{n - r} \\
-&= {4 \choose 1} 0.2^1(1 - 0.8)^{4 - 1} \\
-&= 4 \times 0.2 \times 0.2^3 \\
-&= 4 \times 0.2 \times 0.2^3 \\
+&= {4 \choose 1} 0.8^1(1 - 0.8)^{4 - 1} \\
+&= 4 \times 0.8 \times 0.2^3 \\
+&= 4 \times 0.8 \times 0.2^3 \\
 &= `r n = 4; p = 0.8; r = 1; choose(n, r) * p^r * (1 - p)^(n - r)`
 \end{align}
 
@@ -122,8 +122,8 @@ P(Y = 1) &= {n \choose r} p^r(1 - p)^{n - r} \\
 P(Y \geq 1) &= 1 - P(Y = 0) \\
 r &= 0 \\
 P(Y = 0) &= {n \choose r} p^r(1 - p)^{n - r} \\
-&= {4 \choose 0} 0.2^0(1 - 0.8)^{4 - 0} \\
-&= 1 \times 12\times 0.2^4 \\
+&= {4 \choose 0} 0.8^0(1 - 0.8)^{4 - 0} \\
+&= 1 \times 1\times 0.2^4 \\
 &= `r n = 4; p = 0.8; r = 0; x <- choose(n, r) * p^r * (1 - p)^(n - r); x` \\
 P(Y \geq 1) &= 1 - P(Y = 0) = 1 - `r x` = `r 1 - x`
 \end{align}
@@ -141,8 +141,8 @@ P_Y_geq_1
 3. For each of the following cases, indicate whether the use of a normal approximation to the binomial distribution is appropriate.
 
    a) $n = 100 $ and $p = 0.05$.  $np =$ `r 100 * 0.05` $\geq 5$ and $n(1 - p) =$ `r 100 * (1 - 0.05)` $\geq 5$ so yes, the normal approximation to the binomial distribution is appropriate.
-   b) $n = 30 $ and $p = 0.1$.  $np =$ `r 30 * 0.1` $\geq 5$ so no, the normal approximation to the binomial distribution is not appropriate.
-   c) $n = 30 $ and $p = 0.9$.  $np =$ `r 30 * 0.9` $\geq 5$ but $n(1 - p) =$ `r 30 * (1 - 0.9)` $\geq 5$ so no, the normal approximation to the binomial distribution is not appropriate.
+   b) $n = 30 $ and $p = 0.1$.  $np =$ `r 30 * 0.1` $\leq 5$ so no, the normal approximation to the binomial distribution is not appropriate.
+   c) $n = 30 $ and $p = 0.9$.  $np =$ `r 30 * 0.9` $\geq 5$ but $n(1 - p) =$ `r 30 * (1 - 0.9)` $\leq 5$ so no, the normal approximation to the binomial distribution is not appropriate.
    d) $n = 20 $ and $p = 0.6$.  $np =$ `r 20 * 0.6` $\geq 5$ and $n(1 - p) =$ `r 20 * (1 - 0.6)` $\geq 5$ so yes, the normal approximation to the binomial distribution is appropriate.
 
 4. Let $X$ be a normal random variable with mean 3 and variance 2.  The standard deviation of $X$ is $\sqrt{2} = 1.414$.  We write $X \sim \mathrm{N}(3, 2)$.  Also, we usually use the notation $Z$ to represent a standard normal random variable that has mean 0 and variance 1, that is, $Z \sim \mathrm{N}(0, 1)$.  Find the following probabilities.
@@ -167,15 +167,15 @@ P\left(Z \leq -1.41\right) &= 1 - \left(0.5 + P\left(0 \leq Z \leq 1.41\right)\r
 
    b) $P\left(0 \leq X \leq 1\right)$.
 \begin{align}
-P\left(0 \leq X \leq 1\right) &= P\left(\frac{0 - \mu}{\sigma} \leq \frac{X - \mu}{\sigma} \leq \frac{1 - \mu}{\sigma}\right) \\
-&= P\left(\frac{0 - 3}{\sqrt{2}} \leq Z \leq \frac{1 - 3}{\sqrt{2}}\right) \\
-&= P\left(\frac{-3}{\sqrt{2}} \leq Z \leq \frac{-2}{\sqrt{2}}\right) \\
-&= P\left(`r z1 = -3 / sqrt(2); z1` \leq Z \leq `r z2 <- -2 / sqrt(2); z2`\right) \\
-&= P\left(X \leq 1\right) - P\left(X \leq 0\right) \\
-&= P\left(Z \leq `r z2`\right) - P\left(Z \leq `r z1`\right) \\
+P\left(0 \leq X \leq 1\right) &= P\left(X \leq 1\right) - P\left(X \leq 0\right) \\
+&= P\left(\frac{X - \mu}{\sigma} \leq \frac{1 - \mu}{\sigma}\right) - P\left(\frac{X - \mu}{\sigma} \leq \frac{0 - \mu}{\sigma}\right) \\
+&= P\left(Z \leq \frac{1 - \mu}{\sigma}\right) - P\left(Z \leq \frac{0 - \mu}{\sigma}\right) \\
+&= P\left(Z \leq \frac{1 - 3}{\sqrt{2}}\right) - P\left(Z \leq \frac{0 - 3}{\sqrt{2}}\right) \\
+&= P\left(Z \leq \frac{-2}{\sqrt{2}}\right) - P\left(Z \leq \frac{-3}{\sqrt{2}}\right) \\
+&= P\left(Z \leq `r z2 <- -2 / sqrt(2); z2`\right) - P\left(Z \leq `r z1 = -3 / sqrt(2); z1`\right) \\
 \end{align}
 \begin{align}
-\text{From the standard normal tables using } Z_1 = -2.12 \text{ and } Z_2 = -1.41
+\text{From the standard normal tables using } z_1 = -1.41 \text{ and } z_2 = -2.12
 \end{align}
 \begin{align}
 P\left(Z \leq -1.41\right) &= `r pz` \text{ (using the result from (a) above)}\\
@@ -196,7 +196,9 @@ P(X \geq 2) &= P\left(\frac{X - \mu}{\sigma} \geq \frac{2 - \mu}{\sigma}\right) 
 &= P\left(Z \geq \frac{-1}{\sqrt{2}}\right) \\
 &= P\left(Z \geq `r z <- -1 / sqrt(2); z`\right)
 \end{align}
+\begin{align}
 \text{From the standard normal tables using } z = -0.71
+\end{align}
 \begin{align}
 P\left(Z \leq -0.71\right) &= 0.5 + P\left(0 \leq Z \leq 0.71\right) \\
 &= 0.5 + 0.2611 \\
@@ -241,8 +243,20 @@ P(Y \leq 20) = `r sprintf("%.3f", sum(dbinom(1:20, 30, 0.59)))`
       ii) Report the **approximate** probability using the normal approximation **with** the continuity correction.
 \begin{align}
 P(Y \leq 20) &\approx P(-0.5 \leq Y \leq 20.5) \\
-&= `r sprintf("%.3f", pnorm(20.5, xmean, xsd))`
+&= `r sprintf("%.3f", pnorm(20.5, xmean, xsd) - pnorm(-0.5, xmean, xsd))`
 \end{align}
+
+```{r 5cii, include = FALSE}
+n <- 30
+p <- 0.59
+r <- 20
+mu <- n * p
+sigma <- sqrt(n * p * (1 - p))
+pnorm(20.5, mu, sigma) - pnorm(-0.5, mu, sigma)
+z1 <- (20.5 - mu) / sigma
+z2 <- (-0.5 - mu) / sigma
+pnorm(z1) - pnorm(z2)
+```
 
    d) Re-do (c) (i) and (ii) for the probability that "less than" 20 of them would continue working.
 
@@ -254,7 +268,7 @@ P(Y < 20) = `r sprintf("%.3f", sum(dbinom(1:19, 30, 0.59)))`
       ii) Report the **approximate** probability using the normal approximation **with** the continuity correction.
 \begin{align}
 P(Y < 20) &\approx P(0.5 < Y < 19.5) \\
-&= `r sprintf("%.3f", pnorm(19.5, xmean, xsd))`
+&= `r sprintf("%.3f", pnorm(19.5, xmean, xsd) - pnorm(-0.5, xmean, xsd))`
 \end{align}
 
 6. Test the null hypothesis $\mathcal{H}_0: p = 0.4$ against the alternative hypothesis $\mathcal{H}_1: p \neq 0.4$.  Suppose that the $p$-value = 0.02.  What conclusion do you make at the 5% significance level? \newline\newline
