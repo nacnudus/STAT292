@@ -1,0 +1,258 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+opts_chunk$set(dpi = 300)
+options(digits = 2)
+```
+
+```{r packages, include = FALSE}
+library(knitr)
+library(ggplot2)
+library(reshape2)
+```
+
+```{r false-alarms, include = FALSE}
+alarms <- data.frame(number = seq(0, 6)
+                     , frequency = c(28, 20, 7, 2, 2, 0, 1))
+
+plot(alarms$frequency, col = "black")
+points(dpois(0:6, 0.9) * 60, col = "red")
+points(dpois(0:6, 0.8) * 60, col = "green")
+
+lambda <- sum(alarms$number * alarms$frequency) / sum(alarms$frequency)
+alarms$probability <- dpois(alarms$number, lambda)
+alarms$expected <- sum(alarms$frequency) * alarms$probability
+
+# pool small categories
+pooled <- alarms[-5:-7, ]
+pooled$number[4] <- paste0(pooled$number[4], "--6")
+pooled$frequency[4] <- sum(alarms$frequency[4:7])
+pooled$probability[4] <- sum(alarms$probability[4:7])
+pooled$expected[4] <- sum(alarms$expected[4:7])
+pooled$mse <- (pooled$frequency - pooled$expected)^2/pooled$expected
+pooled[, 2:5] <- round(pooled[, 2:5], 2)
+X2 <- sum(pooled$mse)
+
+# Total row
+pooled <- rbind(pooled, list("Total", sum(pooled$frequency), sum(pooled$probability), sum(pooled$expected), sum(pooled$mse)))
+
+# Latex column names
+colnames(alarms) <- c("number of false alarms", "frequency ($f_i$)", "probability", "$\\hat{f}_i$")
+kable(alarms)
+colnames(pooled) <- c("number of false alarms", "frequency ($f_i$)", "probability", "$\\hat{f}_i$", "$\\left(f_i - \\hat{f}_i\\right)^2 / \\hat{f}_i$")
+kable(alarms)
+kable(pooled)
+
+k = 4
+m = 1
+alarms.df <- k - m - 1
+pvalue <- 1 - pchisq(X2, alarms.df)
+pvalue
+```
+
+```{r false-alarms2, include = FALSE}
+
+alarms2 <- data.frame(number = seq(0, 6)
+                     , frequency = c(28, 20, 7, 2, 2, 0, 1))
+lambda <- 0.8
+alarms2$probability <- dpois(alarms2$number, lambda)
+alarms2$expected <- sum(alarms2$frequency) * alarms2$probability
+
+# pool small categories
+pooled2 <- alarms2[-5:-7, ]
+pooled2$number[4] <- paste0(pooled2$number[4], "--6")
+pooled2$frequency[4] <- sum(alarms2$frequency[4:7])
+pooled2$probability[4] <- sum(alarms2$probability[4:7])
+pooled2$expected[4] <- sum(alarms2$expected[4:7])
+pooled2$mse <- (pooled2$frequency - pooled2$expected)^2/pooled2$expected
+pooled2[, 2:5] <- round(pooled2[, 2:5], 2)
+X22 <- sum(pooled2$mse)
+
+# Total row
+pooled2 <- rbind(pooled2, list("Total", sum(pooled2$frequency), sum(pooled2$probability), sum(pooled2$expected), sum(pooled2$mse)))
+
+# Latex column names
+colnames(alarms2) <- c("number of false alarms", "frequency ($f_i$)", "probability", "$\\hat{f}_i$")
+kable(alarms2)
+colnames(pooled2) <- c("number of false alarms", "frequency ($f_i$)", "probability", "$\\hat{f}_i$", "$\\left(f_i - \\hat{f}_i\\right)^2 / \\hat{f}_i$")
+kable(alarms2)
+kable(pooled2)
+
+k2 = 4
+m2 = 0 # because we did not estimate lambda
+alarms2.df <- k2 - m2 - 1
+pvalue2 <- 1 - pchisq(X22, alarms2.df)
+pvalue2
+```
+
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
+# Assignment 7
+
+1. An association of Christmas tree growers sponsored a sample survey of Wellington households to help improve the marketing of Christmas trees.  One question in the survey was "Did you have a Christmas tree last year?"  Of the 500 respondents, 421 answered "yes."
+   a) Find the sample proportion of Wellington households who had a Christmas tree last year (up to 2dp).
+   \begin{align}
+   \hat{p} &= y / n \text{ where } y = 421, n = 500 \\
+   \hat{p} &= 421 / 500 \\
+   &= `r p7 <- 421 / 500; ps <- sprintf("%.2f", p7); ps`
+   \end{align}
+   b) Give a 95% confidence interval for the proportion of Wellington households who had a Christmas tree last year (up to 2dp).  Show your work based on the confidence interval formula.
+   \newline
+   \newline
+   An approximate $100 \left(1 - \alpha \right)$% confidence interval is
+   \begin{align}
+   \hat{p} \pm z_{1 - \alpha / 2} \sqrt{\frac{\hat{p} \left(1 - \hat{p}\right)}{n}} &= \left(\hat{p} - zS_{\hat{p}}, \hat{p} + zS_{\hat{p}}\right) \\
+   \text{where } n &= 500 \\
+   \alpha &= 0.05 \\
+   z_{1 - \alpha / 2} &= z_{0.975} \\
+   &= 1.960 \\
+   \hat{p} &= `r ps` \\
+   zS_{\hat{p}} &= 1.960 * \sqrt{\frac{`r ps`\left(1 - `r ps`\right)}{500}} \\
+   &= `r z <- 1.960; zsp <- 1.960 * sqrt((p7 * (1 - p7)) / 500); zsps <- sprintf("%.2f", zsp); zsps` \\
+   \text{so } \left(\hat{p} - zS_{\hat{p}}, \hat{p} + zS_{\hat{p}}\right) &= (`r ps` - `r zsps`, `r ps` + `r zsps`) \\
+   &= (`r zspsminus <- sprintf("%.2f", p7 - zsp); zspsminus`, `r zspsplus <- sprintf("%.2f", p7 + zsp); zspsplus`)
+   \end{align}
+   With 95% confidence, the proportion of households who had a Christmas tree last year is between `r zspsminus`% and `r zspsplus`%.
+   \newline
+   \newline
+   c) In the survey, respondents were also asked if they lived in an urban area or in a rural area.  Of the 421 households displaying a Christmas tree, 160 lived in rural areas and 261 were urban residents.  Among those who lived in rural areas, 64 of them preferred natural trees.  Among those who lived in urban areas, 89 of them preferred natural trees.  The tree growers want to know if there is a difference in preference for natural trees versus artificial trees between urban and rural household. 
+   \newline
+   \newline
+   Test the null hypothesis that there is no difference in preference for natural trees versus artificial trees between urban and rural households.  The alternative hypothesis states that the preference for natural trees versus artificial trees is different for urban and rural households.  Write down the null and alternative hypotheses using notations $p_1$ and $p_2$.  Show your work on calculating the test statistic (up to 2dp).  Find the $p$-value of the test.  Summarize the result at the 10% significance level.
+   \newline
+   \newline
+   $\mathcal{H}_0: p_1 = p_2$ against $\mathcal{H}_1: p_1 \neq p_2$ where $p_1$ is the proportion of rural dwellers who prefer natural trees, and $p_2$ is the proportion of urban dwellers who prefer natural trees.
+   \begin{align}
+   \hat{p}_1 &= 64 / 160 = `r y1 <- 64; n1 <- 160; p1 <- y1 / n1; p1` \\
+   \hat{p}_2 &= 89 / 261 = `r y2 <- 89; n2 <- 261; p2 <- y2 / n2; p2`
+   \end{align}
+   The pooled estimate of $p$ is
+   \begin{align}
+   \hat{p} &= \frac{y_1 + y_2}{n1 + n2} \\
+   &= \frac{`r y1` + `r y2`}{`r n1` + `r n2`} \\
+   &= `r pp <- (y1 + y2) / (n1 + n2); pp`
+   \end{align}
+   The test statistic is
+   \begin{align}
+   z^{*} &= \frac{\hat{p}_1 - \hat{p}_2}{\sqrt{\hat{p}(1 - p)\left(\frac{1}{n1} + \frac{1}{n2}\right)}} \\
+   &= \frac{`r p1` - `r p2`}{\sqrt{`r pp`(1 - `r pp`)\left(\frac{1}{`r n1`} + \frac{1}{`r n2`}\right)}} \\
+   &= `r z <- (p1 - p2) / sqrt(pp * (1 - pp) * ((1 / n1) + (1 / n2))); z`
+   \end{align}
+   The $p$-value is
+   \begin{align}
+   p &= 2\mathrm{P}(Z > `r z`) \\
+   &= `r 2 * (1 - pnorm(z))`
+   \end{align}
+   Since the $p$-value $< 0.10$ we do not have sufficient statistical evidence to reject $\mathcal{H}_0$ at the 10% level, that is, the proportions of rural and urban dwellers who prefer natural trees appear to be the same.
+
+2. When trying to hire managers and executives, companies sometimes verify the academic credentials described by the applicants.  One company that performs these checks summarized their findings for a short period.  Of 12 applicants whose credentials were checked, 1 lied about having a degree.
+   a) Give a 95% adjusted confidence interval for the true proportion of applicants who lie about having a degree (up to 3dp).  Give a reason of using the adjusted confidence interval instead of the approximate confidence interval.
+   \newline
+   \newline
+   The adjusted confidence interval is
+   \begin{align}
+   \hat{p}^{*} &= \frac{y + 2}{n + 4}
+   \end{align}
+   Where $y = 1$ and $n = 12$
+   \begin{align}
+   \hat{p}^{*} &= \frac{1 + 2}{12 + 4} `r options(digits = 3); y1 <- 1; n1 = 12; phat <- (y1 + 2) / (n1 + 4)` \\
+   &= \frac{`r y1 + 2`}{`r n1 + 4`} \\
+   &= `r phat`
+   \end{align}
+   The adjusted confidence interval is easier to construct than the exact confidence interval, and also has meaning when no successes have been observed.
+   \newline
+   \newline
+   b) Suppose the company wants to obtain a precise estimate of the proportion of applicants who lie about having a degree, $p$.  It is desired to select a random sample of applicants of sufficient size to provide a 95 percent confidence interval for $p$ with margin of error 0.05.  Find the most conservative sample size required to satisfy the precision.
+   \newline
+   \newline
+   Using the normal approximation, the required sample size is
+   \begin{align}
+   n &= \left(\frac{z_{1 - \alpha / 2}}{\delta}\right)^2 p(1 - p)
+   \end{align}
+   where $z_{1 - \alpha / 2}$ is the $100(1 - \alpha / 2)$ percentile of the standard normal distribution.  Since we do not know the exact value of $p$ we use the estimate in (b) above, $\hat{p} = `r phat`$.
+   \begin{align}
+   n &= \left(\frac{1.96}{0.05}\right)^2 `r phat`(1 - `r phat`) \\
+   &= `r ss <- (1.96 / 0.05)^2 * phat * (1 - phat); ss`
+   \end{align}
+   The sample size required is `r ceiling(ss)`.
+   \newline
+   \newline
+   The most conservative estimate possible would estimate $p$ with $\hat{p} = 0.5$.
+   \begin{align}
+   n &= \left(\frac{1.96}{0.05}\right)^2 0.5(1 - 0.5) \\
+   &= `r ss <- (1.96 / 0.05)^2 * 0.5 * (1 - 0.5); ss`
+   \end{align}
+   The most conservative sample size required is `r ceiling(ss)`.
+
+3.  A city report described the results of a campaign aimed at reducing the incidence of false alarms received by city fire stations.  Included in the report was the following frequency distribution of the number of falses alarms received by Fire Station 27 each day during a 60-day period following the campaign:
+   \newline
+   \begin{tabular}{rccccccc}
+   \hline
+   Number of False Alarms: & 0                      & 1                      & 2                     & 3                     & 4                     & 5                     & 6                     \\
+   Number of Days:         & \multicolumn{1}{r}{28} & \multicolumn{1}{r}{20} & \multicolumn{1}{r}{7} & \multicolumn{1}{r}{2} & \multicolumn{1}{r}{2} & \multicolumn{1}{r}{0} & \multicolumn{1}{r}{1} \\ \hline
+   \end{tabular}
+   a) To examine the nature of the probability distribution, use the chi-square procedure to test whether the probability distribution of the daily number of false alarms after the campaign is Poisson.  Write down the null and alternative hypotheses.  Write down the distribution of the test statistic under the null hypothesis.  Give the $p$-value of the test and make your conclusion at the 5% significance level.
+   \newline
+   \newline
+   $\mathcal{H}_0:$ The population distribution is Poisson.
+   \newline
+   $\mathcal{H}_1:$ The population distribution is not Poisson.
+   \newline
+   \newline
+   We use the chi-squared test based on a comparison of the sample data with the expected outcomes if the population distribution is Poisson.  First, we obtain the expected outcomes under the null hypothesis, from a Poisson distribution with the mean daily number of false alarms estimated by $\lambda = \hat{\lambda} = `r lambda`$.  Probabilities and expected frequencies are calculated for each category from the Poisson distribution using $\hat{\lambda}$.  See Table 1.
+   \newline
+   \newline
+   Since the expected frequency in the final categories (3--6 false alarms per day) are smaller than 2, these categories are pooled and the differences calculated.  See Table 2.  The test statistic $X^2$ is `r X2` and is has a $\chi^2$ distribution with $`r k` - `r m` - 1 = `r alarms.df`$ degrees of freedom under $\mathcal{H}_0$.  The $p$-value is `r pvalue`, which is greater than $\alpha$ at the 5% significance level, therefore we do not have enough statistical evidence to reject the null hypothesis that the daily frequency of false alarms is not Poisson.
+   \newline
+   \newline
+   b) Test whether the probability distribution of the daily number of false alarms after the campaign is Poisson with mean 0.8.  Write down the null and alternative hypotheses.  Write down the distribution of the test statistic under the null hypothesis.  Give the $p$-value of the test and make your conclusion at the 5% significance level.
+   \newline
+   \newline
+   $\mathcal{H}_0:$ The population distribution is Poisson with mean 0.8.
+   \newline
+   $\mathcal{H}_1:$ The population distribution is not Poisson with mean 0.8.
+   \newline
+   \newline
+   We use the chi-squared test based on a comparison of the sample data with the expected outcomes if the population distribution is $\sim\mathrm{P}(\lambda=0.9)$.  First, we obtain the expected outcomes under the null hypothesis, from a Poisson distribution with mean 0.8.  Probabilities and expected frequencies are calculated for each category from the Poisson distribution using $\lambda = 0.8$.  See Table 3.
+   \newline
+   \newline
+   Since the expected frequency in the final categories (3--6 false alarms per day) are smaller than 2, these categories are pooled and the differences calculated.  See Table 4.  The test statistic $X^2$ is `r X22` and is has a $\chi^2$ distribution with $`r k2` - `r m2` - 1 = `r alarms2.df`$ degrees of freedom under $\mathcal{H}_0$ ($m = 0$ because we did not estimate $\lambda$).  The $p$-value is `r pvalue2`, which is greater than $\alpha$ at the 5% significance level, therefore we do not have enough statistical evidence to reject the null hypothesis that the daily frequency of false alarms is not Poisson.
+   \newpage
+
+```{r table_alarms, results = "asis", echo = FALSE}
+kable(alarms, format = "pandoc", caption = "false alarms vs Poisson")
+```
+
+```{r table_pooled, results = "asis", echo = FALSE}
+kable(pooled, format = "pandoc", caption = "false alarms vs Poisson  (last three categories pooled)")
+```
+
+   \newpage
+
+```{r table_alarms2, results = "asis", echo = FALSE}
+kable(alarms2, format = "pandoc", caption = "false alarms vs Poisson(0.8)")
+```
+
+```{r table_pooled2, results = "asis", echo = FALSE}
+kable(pooled2, format = "pandoc", caption = "false alarms vs Poisson(0.8) (last three categories pooled)")
+```
+
+   \newpage
+
+```{r graph, echo = FALSE, warning = FALSE, dpi = 300, fig.width = 5, fig.height = 5, fig.cap = "distributions"}
+frequency.total <- sum(alarms$frequency)
+lambda.hat <- sum(alarms$number * alarms$frequency) / sum(alarms$frequency)
+series <- data.frame(number = alarms$number
+		     , actual = alarms$frequency
+		     , lambda_0.9 = dpois(alarms$number, 0.9) * frequency.total
+		     , lambda_0.8 = dpois(alarms$number, 0.8) * frequency.total)
+series <- melt(series, id.vars = "number")
+
+my.labs <- list("actual", bquote(lambda==0.9),bquote(lambda==0.8))
+
+ggplot(series, aes(number + as.integer(variable) * 0.1 - 0.2, value, shape = variable)) + geom_point() +
+xlab("number of false alarms") + ylab("daily frequency") + theme(legend.title = element_blank(), legend.position = "bottom") +
+scale_shape_discrete(labels = my.labs)
+```
