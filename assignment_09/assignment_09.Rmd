@@ -172,17 +172,17 @@ crabs.p <- 1 - pchisq(crabs.wald, 1)
 
 b) Give estimates of $\alpha$ and $\beta$ (up to 4dp).
 \begin{align*}
-\alpha &= `r sprintf("%.4f", crabs.alpha)` \\
-\beta &= `r sprintf("%.4f", crabs.beta)`
+\alpha &= `r sprintf("%.3f", crabs.alpha)` \\
+\beta &= `r sprintf("%.3f", crabs.beta)`
 \end{align*}
 
 c) Interpret the association between weight and whether having satellites using the odds ratio.
 
 The estimated odds of having a satellite are
 \begin{align*}
-\exp(\hat{\beta}) = \exp(`r crabs.beta`) = `r crabs.beta.exp`
+\exp(\hat{\beta}) = \exp(`r crabs.beta`) = `r sprintf("%.2f", crabs.beta.exp)`
 \end{align*}
-times higher when the weight goes up one unit (kg).  Since the table gives categories of weight 0.3 units apart, the estimated odds of not having a satellite are $\exp(0.3 \times `r crabs.beta`) = `r exp(0.3 * crabs.beta)`$ times higher when weight falls into category $i + 1$ instead of $i$.
+times higher when the weight goes up one unit (kg).  Since the table gives categories of weight 0.3 units apart, the estimated odds of not having a satellite are $\exp(0.3 \times `r crabs.beta`) = `r sprintf("%.2f", exp(0.3 * crabs.beta))`$ times higher when weight falls into category $i + 1$ instead of $i$.
 
 d) Find predicted probability of having satellites when weight = 2.3 kg.
 
@@ -228,6 +228,8 @@ latex(tabular(RowFactor(race, "Race (R)", c("White (1)", "Black (2)", "Others (3
 	      * RowFactor(gender, "Gender (G)", c("Male (1)", "Female (2)"), 2)
 	      ~ Factor(intercourse, "Intercourse", c("Yes", "No"))
 	      , data = sex))
+sex$race <- relevel(sex$race, "others")
+sex$gender <- relevel(sex$gender, "female")
 sex$intercourse <- relevel(sex$intercourse, "no")
 ```
 \end{center}
@@ -249,9 +251,13 @@ sex.beta.G.1 <- 0
 sex.beta.G.2 <- coef(sex.lm)[4]
 sex.resid <- summary(sex.lm)$df.residual # wrong
 sex.resid <- length(levels(sex$race)) * length(levels(sex$gender)) - 1 - (length(levels(sex$race)) - 1) - (length(levels(sex$gender)) - 1)
-sex.odds.female <- exp(coef(sex.lm)[4])
-sex.confidence.female <- exp(confint.default(sex.lm, "genderfemale"))
-sex.odds.black <- exp(coef(sex.lm)[2])
+sex.odds.male <- exp(coef(sex.lm)[4])
+sex.confidence.male <- exp(confint.default(sex.lm, "gendermale"))
+sex.odds.black <- exp(coef(sex.lm)[3])
+sex.odds.white <- exp(coef(sex.lm)[2])
+sex.beta.black <- coef(sex.lm)[3]
+sex.beta.white <- coef(sex.lm)[2]
+white.vs.black <- exp(sex.beta.white - sex.beta.black)
 sex.confidence.black <- exp(confint.default(sex.lm, "raceblack"))
 sex.coef <- summary(sex.lm)$coefficients
 sex.G.beta <- sex.coef[4, 1]
@@ -273,11 +279,19 @@ c) Interpret the model using the following odds ratios:
 
 i. Comparing the odds of having sexual intercourse for males with the odds of having sexual intercourse for females.  Give the 95% confidence interval for the odds ratio.
 
-The odds of females having had intercourse are `r sex.odds.female` times the odds of males having had sexual intercourse.  The 95% confidence interval for females having had intercourse is (`r sex.confidence.female[1]`, `r sex.confidence.female[2]`).
+The odds of males having had intercourse are `r sex.odds.male` times the odds of females having had sexual intercourse.  The 95% confidence interval for males having had intercourse is (`r sex.confidence.male[1]`, `r sex.confidence.male[2]`).
 
 ii. Comparing the odds of having sexual intercourse for whites with the odds of having sexual intercourse for blacks.
 
-The odds of blacks having had intercourse are `r sex.odds.black` times the odds of whites having had sexual intercourse.  The 95% confidence interval for blacks having had intercourse is (`r sex.confidence.black[1]`, `r sex.confidence.black[2]`).
+For a given level of $G$, the odds ratio for $R$ on levels $i = \text{White}$ and $i' =\text{Black}$ is
+\begin{align*}
+\frac{\frac{p_{ij}}{1 - p_{ij}}}{\frac{p_{i'j}}{1 - p_{i'j}}} &= \exp((\alpha + \beta^R_i + \beta^G_j) - (\alpha + \beta^R_{i'} + \beta^G_j)) \\
+&= \exp(\beta^R_i - \beta^R_{i'}) \\
+&= \exp(`r sex.beta.white` - `r sex.beta.black`) \\
+&= `r white.vs.black`
+\end{align*}
+
+The odds of whites having had intercourse are `r white.vs.black` times the odds of blacks having had sexual intercourse.
 
 d) Find the residual degrees of freedom.
 
@@ -287,6 +301,6 @@ e) Test $\mathcal{H}_0: \beta^G_1 = 0$ against $\mathcal{H}_1: \beta^G_1 \neq 0$
 
 The Wald statistic has the value
 \begin{align*}
-Z^2 = \left(\frac{\hat{\beta}^G_1}{S.E.}\right)^2 = \left(\frac{`r sex.G.beta`}{`r sex.G.se`}\right)^2 = `r sex.G.z2`
+Z^2 = \left(\frac{\hat{\beta}^G_1}{S.E.}\right)^2 = \left(\frac{`r sex.G.beta`}{`r sex.G.se`}\right)^2 = `r sprintf("%.2f", sex.G.z2)`
 \end{align*}
 which is $\sim \chi^2_1$, so the $p$-value is `r format.pval(sex.G.p, eps = 0.0001, scientific = FALSE)`, which is <$0.05$, so we reject $\mathcal{H}_0$ at the 5% significance level, that is, the gender effects are significant on the likelihood of having had intercourse.
