@@ -1,0 +1,272 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+opts_chunk$set(echo = FALSE
+	       , dpi = 300)
+options(digits = 2)
+```
+
+```{r packages, include = FALSE}
+library(knitr)
+library(ggplot2)
+library(reshape2)
+library(gmodels)
+library(vcd) # for odds ratios
+```
+
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
+# Assignment 8
+
+1. The following table classifies a sample of psychiatrists by their school of psychiatric thought and by their opinion on the origin of schizophrenia.
+
+```{r 1, results = "asis"}
+psy <- read.csv("psychiatrists.csv")
+psy <- psy[rep(rownames(psy), psy$count), 1:2]
+psy.table <- table(psy)
+kable(psy.table)
+```
+
+a) Suppose that the opinion on the origin of schizophrenia is independent of the school of psychiatric thought.  Find the expected frequency for each cell.
+
+The estimated expected frequency is
+
+\begin{align}
+\hat{\mu}_{ij} = \frac{\text{row total} \times \text{column total}}{\text{grand total}}
+\end{align}
+
+The table of expected frequencies is
+```{r 1a, results = "asis"}
+psy.expected <- outer(margin.table(psy.table, 1), margin.table(psy.table, 2)) / margin.table(psy.table)
+colnames(psy.expected) <- colnames(psy.table)
+kable(psy.expected)
+# Only run the next command for testing because it prints its output
+# psy.cross <- CrossTable(psy$school, psy$origin, expected = TRUE, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE)
+```
+
+b) Test the hypothesis of independence between the school of psychiatric thought and their opinion on the origin of schizophrenia at the 5% significance level.  Write down the null and alternative hypotheses.  Give $p$-values for both Pearson and likelihood ratio chi-squared tests.  What do you conclude?  Attach SAS output.
+
+   $\mathcal{H}_0:$ The school of psychiatric thought and the opinion on the origin of schizophrenia are independent.
+
+   $\mathcal{H}_1:$ The school of psychiatric thought and the opinion on the origin of schizophrenia are not independent.
+
+   The \emph{Pearson chi-squared} test statistic is defined as:
+
+   $$
+   X^2 = \sum_{\text{all cells}} \frac{(\text{observed count} - \text{expected count})^2}{\text{expected count}} 
+   = \sum_{i = 1}^{I} \sum_{j = 1}^{J} \frac{(n_{ij} - \hat{u}_{ij})^2}{\hat{u}_{ij}}
+   $$
+
+   The individual statistics are in the table below.
+
+```{r 1b-pearson, results = "asis"}
+psy.pearson <- (psy.expected - psy.table)^2 / psy.expected
+kable(psy.pearson)
+psy.X2 <- sum(psy.pearson)
+psy.I <- nrow(psy.table)
+psy.J <- ncol(psy.table)
+psy.df <- (psy.I - 1) * (psy.J - 1)
+psy.p <- 1 - pchisq(psy.X2, psy.df)
+```
+
+The $X^2$ statistic is `r psy.X2` and has an approximate $\chi^2$ distribution with $(I - 1)(J - 1)$ degrees of freedom for large samples.  $I = `r psy.I`$ and $J = `r psy.J`$ so $\text{d.f.} = (`r psy.I` - 1)(`r psy.J` - 1) = `r psy.I - 1` \times `r psy.J - 1` = `r psy.df`$.  The $p$-value is `r sprintf("%.4f", psy.p)`.  Since the $p$-value is less than 0.05, we reject the null hypothesis at the 5% confidence level, that is, the school of psychiatric thought and the opinion on the origin of schizophrenia are not independent.
+
+The \emph{likelihoood-ratio chi-squared} test statistic is defined as:
+
+   $$
+   G^2 = 2 \sum_{i = 1}^{I} \sum_{j = 1}^{J} n_{ij} \log{}{\left(\frac{n_{ij}}{\hat{\mu}_{i}}\right)}
+   $$
+
+```{r 1b-likelihood, results = "asis"}
+psy.likelihood <- psy.table * log(psy.table / psy.expected)
+kable(psy.likelihood)
+psy.G2 <- 2 * sum(psy.likelihood)
+psy.df <- (psy.I - 1) * (psy.J - 1)
+psy.p.likelihood <- 1 - pchisq(psy.G2, psy.df)
+```
+
+The $G^2$ statistic is `r psy.G2` and has an approximate $\chi^2$ distribution with the same degrees of freedom as above.  The $p$-value is `r sprintf("%.4f", psy.p.likelihood)`.  Since the $p$-value is less than 0.05, we reject the null hypothesis at the 5% confidence level, that is, the school of psychiatric thought and the opinion on the origin of schizophrenia are not independent.
+
+c) Is it sensible to use the Mantel-Haenszel chi-square test?  Why or why not?
+
+No, it is not sensible, because the Mantel-Haenszel chi-square test is designed to detect linear relationships between ordinal factors, and this is not ordinal data.
+
+2. For the above data, we combine the eclectic and medical schools and compare them to the psychoanalytic school.  Consider the opinion on origin of schizophrenia being either Biogenic or Environmental only.  We have the table as follows:
+
+```{r 2, results = "asis"}
+psy2 <- psy
+psy2 <- psy2[psy2$origin != "combination", ]
+psy2$school[psy2$school == "medical"] <- "eclectic"
+psy2 <- droplevels(psy2)
+psy2$school <- factor(psy2$school, labels = c("medical/eclectic", "psychoanalytic"))
+psy2.table <- table(psy2)
+kable(psy2.table)
+```
+
+a) Describe and interpret the association between the school of psychiatric thought and their opinion on the origin of schizophrenia using the odds ratio.
+
+```{r 2a, echo = FALSE}
+psy2.oddsratio <- oddsratio(psy2.table, log = FALSE)
+psy2.confint <- confint(psy2.oddsratio)
+```
+
+The sample odds ratio is
+$$
+\theta = \frac{`r psy2.table[1, 1]` \times `r psy2.table[2, 2]`}{`r psy2.table[1, 2]` \times `r psy2.table[2, 1]`} = `r psy2.oddsratio`
+$$
+
+The odds of a psychiatrist of the medical/eclectic school being of the opinion that the origin of schizophrenia is biogenic is `r psy2.oddsratio` times the odds of being of a psychiatrist of the psychoanalytic school being the opinion that the origin of schizophrenia is biogenic.
+
+b) Obtain a 95% confidence interval for the odds ratio.  If you use SAS, attach SAS output.
+
+A 95% confidence interval for $\log \theta$ is
+\begin{align}
+&\log\hat{\theta} \pm z \sqrt{\frac{1}{`r psy2.table[1, 1]`} + \frac{1}{`r psy2.table[1, 2]`} + \frac{1}{`r psy2.table[2, 1]`} + \frac{1}{`r psy2.table[2, 2]`}} \\
+= &`r log(psy2.oddsratio)` \pm 1.96 \times `r sqrt(1/psy2.table[1, 1] + 1/psy2.table[1, 2] + 1/psy2.table[2, 1] + 1/psy2.table[2, 2])` \\
+= &(`r psy2.confint[1]`, `r psy2.confint[2]`)
+\end{align}
+
+c) Test $\mathcal{H}_0:$ the odds ratio $= 1$ vs. $\mathcal{H}_1:$ the odds ratio $\neq 1$ at the 5% significance level.
+
+Since 1 is not in the above 95% confidence interval, we reject $\mathcal{H}_0$ at the 5% significance level.
+
+3. The following table contains results of a study comparing radiation therapy with surgery in treating cancer of the larynx.
+
+```{r 3, results = "asis"}
+cancer <- read.csv("cancer.csv")
+cancer$treatment <- factor(cancer$treatment, levels = rev(levels(cancer$treatment)))
+cancer <- cancer[rep(rownames(cancer), cancer$count), 1:2]
+cancer.table <- table(cancer)
+kable(cancer.table)
+```
+
+a) Use Fisher's exact test to test $\mathcal{H}_0: \theta = 1$ against $\mathcal{H}_1: \theta > 1$.
+
+i. Find the $p$-value of the test and make your conclusion at the 10% significance level.
+
+Two tables are more favourable to $\mathcal{H}_1$ than the observed table. 
+
+```{r 3ai, results = "asis"}
+cancer2 <- cancer
+cancer2$outcome[23] <- "controlled"
+cancer2$outcome[38] <- "not controlled"
+cancer3 <- cancer2
+cancer3$outcome[24] <- "controlled"
+cancer3$outcome[37] <- "not controlled"
+
+cancer2.table <- table(cancer2)
+cancer3.table <- table(cancer3)
+
+kable(cancer2.table)
+kable(cancer3.table)
+
+p22 <- (choose(sum(cancer.table[1, ]), cancer.table[1, 1]) * choose(sum(cancer.table[2, ]), sum(cancer.table[, 1]) - cancer.table[1, 1]) / choose(sum(cancer.table), sum(cancer.table[, 1])))
+
+p23 <- (choose(sum(cancer2.table[1, ]), cancer2.table[1, 1]) * choose(sum(cancer2.table[2, ]), sum(cancer2.table[, 1]) - cancer2.table[1, 1]) / choose(sum(cancer2.table), sum(cancer2.table[, 1])))
+
+p24 <- (choose(sum(cancer3.table[1, ]), cancer3.table[1, 1]) * choose(sum(cancer3.table[2, ]), sum(cancer3.table[, 1]) - cancer3.table[1, 1]) / choose(sum(cancer3.table), sum(cancer3.table[, 1])))
+
+psum <- sum(p22, p23, p24)
+midp <- 0.5 * p22 + p23 + p24
+cancer.two.sided <- fisher.test(cancer.table)$p.value
+```
+
+The formula for Fisher's exact test is
+$$
+P(n_{11}) = \frac{\dbinom{n_{1+}}{n_{11}} \dbinom{n_{2+}}{n_{+1} - n_{11}}}{\dbinom{n}{n_{+1}}}
+$$
+
+\begin{align}
+P(n_{22}) &= \frac{\dbinom{`r sum(cancer.table[1, ])`}{`r cancer.table[1, 1]`} \dbinom{`r sum(cancer.table[2, ])`}{`r sum(cancer.table[, 1])` - `r cancer.table[1, 1]`}}{\dbinom{`r sum(cancer.table)`}{`r sum(cancer.table[, 1])`}}
+&= `r p22` \\
+\\
+P(n_{23}) &= \frac{\dbinom{`r sum(cancer2.table[1, ])`}{`r cancer2.table[1, 1]`} \dbinom{`r sum(cancer2.table[2, ])`}{`r sum(cancer2.table[, 1])` - `r cancer2.table[1, 1]`}}{\dbinom{`r sum(cancer2.table)`}{`r sum(cancer2.table[, 1])`}}
+&= `r p23` \\
+\\
+P(n_{24}) &= \frac{\dbinom{`r sum(cancer3.table[1, ])`}{`r cancer3.table[1, 1]`} \dbinom{`r sum(cancer3.table[2, ])`}{`r sum(cancer3.table[, 1])` - `r cancer3.table[1, 1]`}}{\dbinom{`r sum(cancer3.table)`}{`r sum(cancer3.table[, 1])`}}
+&= `r p24` \\
+\end{align}
+
+$p$-value $= `r p22` + `r p23` + `r p24` = `r sprintf("%.4f", psum)`$.  Since the $p$-value > 0.1 we do not have enough statistical evidence to reject $\mathcal{H}_0$ at the 10% significance level, that is, the odds of survival are equal for cancer patients who have undergone either surgery or radiation therapy.
+
+ii. Find the mid-$p$-value and make your conclusion at the 10% significance level.
+
+\begin{align}
+\text{mid-}p\text{-value } &= \frac{1}{2}P(n_{11} = 22) + P(n_{11} = 23) + P(n_{11} = 24) \\
+&= \frac{1}{2} \times `r p22` + `r p23` + `r p24` \\
+&= `r sprintf("%.4f", midp)`
+\end{align}
+
+Since the mid-$p$-value > 0.1 we do not have enough statistical evidence to reject $\mathcal{H}_0$ at the 10% significance level, that is, the odds of survival are equal for cancer patients who have undergone either surgery or radiation therapy.
+
+iii. Which  $p$-value is more appropriate to report for this example?  And why?
+
+The mid-$p$-value is more appropriate for this example, because the Fisher's exact test is based on small-sample discrete distributions.  Compared with the ordinary $p$-value, the mid-$p$-value behaves more like the $p$-value for a test statistic having a continuous distribution.
+
+b) Use Fisher's exact test to test $\mathcal{H}_0: \theta = 1$ against $\mathcal{H}_1: \theta \neq 1$ by SAS.  Make your conclusion at the 10% significance level.  Attach SAS output.
+
+From the SAS output, the $p$-value of the test $= `r cancer.two.sided`$.  Since the $p-$value > 0.1, we do not have enough statistical evidence to reject $\mathcal{H}_0$ at the 10% significance level.  That is, control of cancer and treatment are not significantly associated.
+
+4. The following table given by Hout et al. (1987) summarizes responses to the questionnaire item "Sex is fun for me and my partner (a) never or occasionally, (b) fairly often, (c) very often, (d) almost always," for 91 married couples from the Tucson metropolitan area.
+
+```{r 4, results = "asis"}
+sex <- read.csv("sex.csv")
+sex.levels <- c("never or occasionally", "fairly often", "very often", "almost always")
+sex$husband <- factor(sex$husband, levels = sex.levels)
+sex$wife <- factor(sex$wife, levels = sex.levels)
+sex <- sex[rep(rownames(sex), sex$count), 1:2]
+sex.table <- table(sex)
+kable(sex.table)
+```
+
+a) Test $\mathcal{H}_0:$ wife's rating of sexual fun is independent of husband's rating versus $\mathcal{H}_1:$ wife's rating of sexual fun is not independent of husband's rating using Pearson chi-squared test statistic at the 5% significance level.  What do you conclude?  Attach SAS output.
+
+The table of expected frequencies is
+
+```{r 4a, results = "asis"}
+sex.expected <- outer(margin.table(sex.table, 1), margin.table(sex.table, 2)) / margin.table(sex.table)
+colnames(sex.expected) <- colnames(sex.table)
+kable(sex.expected)
+# Only run the next command for testing because it prints its output
+# sex.cross <- CrossTable(sex$school, sex$origin, expected = TRUE, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE)
+```
+
+\newpage
+
+The individual statistics are 
+
+```{r 4a-pearson, results = "asis"}
+sex.pearson <- (sex.expected - sex.table)^2 / sex.expected
+kable(sex.pearson)
+sex.X2 <- sum(sex.pearson)
+sex.I <- nrow(sex.table)
+sex.J <- ncol(sex.table)
+sex.df <- (sex.I - 1) * (sex.J - 1)
+sex.p <- 1 - pchisq(sex.X2, sex.df)
+```
+
+The $X^2$ statistic is `r sex.X2` and has an approximate $\chi^2$ distribution with $(I - 1)(J - 1)$ degrees of freedom for large samples.  $I = `r sex.I`$ and $J = `r sex.J`$ so $\text{d.f.} = (`r sex.I` - 1)(`r sex.J` - 1) = `r sex.I - 1` \times `r sex.J - 1` = `r sex.df`$.  The $p$-value is `r sprintf("%.4f", sex.p)`.  Since the $p$-value is less than 0.05, we reject the null hypothesis at the 5% confidence level, that is, the rating of sexual fun of husbands and wives are not independent.
+
+b) Test $\mathcal{H}_0:$ there is no trend association between wife's rating of sexual fun and husband's rating versus $\mathcal{H}_1:$ there is a trend association between wife's rating of sexual fun and husband's rating using the Mantel-Haenszel chi-square test.  What do you conclude?
+
+```{r 4b}
+sex.mh <- as.data.frame(data.matrix(sex))
+sex.mh.r <- with(sex.mh, cor(husband, wife))
+sex.mh <- (nrow(sex.mh) -1) * sex.mh.r^2
+sex.mh.p = 1 - pchisq(sex.mh, 1)
+```
+
+The Mantel-Haenszel chi-square statistic is computed as
+\begin{align}
+Q_{MH} &= (n - 1)r^2 \\
+&= (`r nrow(sex)` - 1) \times `r sex.mh.r`^2 \\
+&= `r nrow(sex) - 1` \times `r sex.mh.r^2` \\
+&= `r sex.mh`
+\end{align}
+where $r$ is the Pearson correlation between the $X$ and $Y$ variables.  Under the null hypothesis, $Q_{MH}$ has an asymptotic chi-squared distribution with 1 degree of freedom.  Therefore in this test $p = `r sprintf("%.4f", sex.mh.p)`$.  Since $p < 0.01$ we conclude that there is a significant linear association between wife's rating of sexual fun and husband's rating at the 1% significance level.
+
+c) Comment on differences of the above two tests.
+
+Pearson's chi-squared test does not use the ordinal information in the data, so does not have as much power to detect a relationship between variables as the Mantel-Haenszel chi-square test, which is why only the Mantel-Haenszel test detected any relationship.

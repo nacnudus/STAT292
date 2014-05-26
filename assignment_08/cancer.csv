@@ -1,0 +1,5 @@
+treatment,outcome,count
+surgery,controlled,22
+surgery,not controlled,2
+radiation therapy,controlled,14
+radiation therapy,not controlled,2
