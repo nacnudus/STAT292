@@ -136,7 +136,7 @@ Duncan Garmonsway 30020831
    \end{align}
    The test statistic is
    \begin{align}
-   z^{*} &= \frac{\hat{p}_1 - \hat{p}_2}{\sqrt{\hat{p}(1 - p)\left(\frac{1}{n1} + \frac{1}{n2}\right)}} \\
+   z^{*} &= \frac{\hat{p}_1 - \hat{p}_2}{\sqrt{\hat{p}(1 - \hat{p})\left(\frac{1}{n1} + \frac{1}{n2}\right)}} \\
    &= \frac{`r p1` - `r p2`}{\sqrt{`r pp`(1 - `r pp`)\left(\frac{1}{`r n1`} + \frac{1}{`r n2`}\right)}} \\
    &= `r z <- (p1 - p2) / sqrt(pp * (1 - pp) * ((1 / n1) + (1 / n2))); z`
    \end{align}
@@ -145,7 +145,7 @@ Duncan Garmonsway 30020831
    p &= 2\mathrm{P}(Z > `r z`) \\
    &= `r 2 * (1 - pnorm(z))`
    \end{align}
-   Since the $p$-value $< 0.10$ we do not have sufficient statistical evidence to reject $\mathcal{H}_0$ at the 10% level, that is, the proportions of rural and urban dwellers who prefer natural trees appear to be the same.
+   Since the $p$-value $> 0.10$ we do not have sufficient statistical evidence to reject $\mathcal{H}_0$ at the 10% level, that is, the proportions of rural and urban dwellers who prefer natural trees appear to be the same.
 
 2. When trying to hire managers and executives, companies sometimes verify the academic credentials described by the applicants.  One company that performs these checks summarized their findings for a short period.  Of 12 applicants whose credentials were checked, 1 lied about having a degree.
    a) Give a 95% adjusted confidence interval for the true proportion of applicants who lie about having a degree (up to 3dp).  Give a reason of using the adjusted confidence interval instead of the approximate confidence interval.
@@ -186,7 +186,7 @@ Duncan Garmonsway 30020831
    \end{align}
    The most conservative sample size required is `r ceiling(ss)`.
 
-3.  A city report described the results of a campaign aimed at reducing the incidence of false alarms received by city fire stations.  Included in the report was the following frequency distribution of the number of falses alarms received by Fire Station 27 each day during a 60-day period following the campaign:
+3.  A city report described the results of a campaign aimed at reducing the incidence of false alarms received by city fire stations.  Included in the report was the following frequency distribution of the number of false alarms received by Fire Station 27 each day during a 60-day period following the campaign:
    \newline
    \begin{tabular}{rccccccc}
    \hline
