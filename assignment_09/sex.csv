@@ -1,0 +1,13 @@
+race,gender,intercourse,count
+white,male,yes,43
+white,male,no,134
+white,female,yes,26
+white,female,no,149
+black,male,yes,29
+black,male,no,23
+black,female,yes,22
+black,female,no,36
+others,male,yes,21
+others,male,no,131
+others,female,yes,12
+others,female,no,152

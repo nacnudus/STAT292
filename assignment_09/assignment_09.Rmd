@@ -1,0 +1,292 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+opts_chunk$set(echo = FALSE
+	       , warning = FALSE
+	       , message = FALSE
+	       , dpi = 300)
+options(digits = 3)
+```
+
+```{r packages, include = FALSE}
+library(knitr)
+library(tables) # loads Hmisc which conflicts with plyr::summarize
+library(plyr)
+# library(abd) # for odds.ratio
+# library(ggplot2)
+library(reshape2)
+# library(gmodels)
+library(vcd) # for oddsratio
+```
+
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
+# Assignment 9
+
+1. The next table gives expected frequencies for whether a boy scout ($B$), delinquency ($D$), and socioeconomic status ($S$).
+
+\begin{center}
+```{r 1, results = "asis"}
+scouts <- read.csv("scouts.csv")
+scouts <- scouts[rep(rownames(scouts), scouts$count), 1:3]
+scouts$socio <- factor(scouts$socio, levels = c("low", "medium", "high"))
+scouts$scout <- factor(scouts$scout, levels = c("yes", "no"))
+scouts$delinquent <- factor(scouts$delinquent, levels = c("yes", "no"))
+latex(tabular(RowFactor(socio, "Socioeconomic Status ($S$)", c("Low", "Medium", "High"), 1, texify = FALSE)
+	      * RowFactor(scout, "Boy Scout ($B$)", c("Yes", "No"), 2, texify = FALSE)
+	      ~ Factor(delinquent, "Delinquent ($D$)", c("Yes", "No"), override = FALSE, texify = FALSE)
+	      , data = scouts))
+```
+\end{center}
+
+a) Construct the marginal $B - D$ table.  Interpret the marginal association using the odds ratio.
+
+\begin{center}
+```{r 1a, results = "asis"}
+latex(tabular(RowFactor(scout, "Boy Scout", c("Yes", "No")) + 1
+	      ~ Factor(delinquent, "Delinquent", c("Yes", "No"), override = FALSE) + 1
+	      , data = scouts))
+bd <- xtabs(~ scout + delinquent, scouts)
+bd.OR <- oddsratio(bd, log = FALSE)
+```
+\end{center}
+
+The sample odds ratio is
+$$
+\hat{\theta} = \frac{`r bd[1, 1]` \times `r bd[2, 2]`}{`r bd[1, 2]` \times `r bd[2, 1]`} = `r bd.OR`
+$$
+
+The estimated odds of a child who is a boy scout being delinquent are `r bd.OR` times the estimated odds of a child who is not a boy scout being delinquent.
+
+b) Interpret the conditional associations between $B$ and $D$, given levels of $S$, using odds ratios.
+
+The partial $B - D$ tables at the three levels of $S$ are:
+
+```{r 1b, results = "asis"}
+bd.by.socio <- dlply(scouts, .(socio), function(x) {xtabs(~ scout + delinquent, x)})
+d_ply(scouts, .(socio), function(x) {cat(as.character(x$socio[[1]])); latex(tabular(RowFactor(scout, "Boy Scout", c("Yes", "No")) + 1
+	      ~ Factor(delinquent, "Delinquent", c("Yes", "No"), override = FALSE) + 1
+	      , data = x))})
+bd.by.socio.OR <- ldply(bd.by.socio, function(x) {data.frame(OR = as.numeric(oddsratio(x, log = FALSE)))})
+```
+\vspace{10pt}
+The estimated odds ratios for the $B - D$ partial tables are
+\begin{align*}
+\hat{\theta}_{BD(1)} &= \frac{`r bd.by.socio[[1]][1, 1]` \times `r bd.by.socio[[1]][2, 2]`}{`r bd.by.socio[[1]][1, 2]` \times `r bd.by.socio[[1]][2, 1]`} = `r bd.by.socio.OR[1, 2]` \text{, when }S = \text{Low}\\
+\hat{\theta}_{BD(2)} &= \frac{`r bd.by.socio[[2]][1, 1]` \times `r bd.by.socio[[2]][2, 2]`}{`r bd.by.socio[[2]][1, 2]` \times `r bd.by.socio[[2]][2, 1]`} = `r bd.by.socio.OR[2, 2]` \text{, when }S = \text{Medium}\\
+\hat{\theta}_{BD(3)} &= \frac{`r bd.by.socio[[3]][1, 1]` \times `r bd.by.socio[[3]][2, 2]`}{`r bd.by.socio[[3]][1, 2]` \times `r bd.by.socio[[3]][2, 1]`} = `r bd.by.socio.OR[3, 2]` \text{, when }S = \text{High}
+\end{align*}
+
+Given socioeconomic status is Low, the estimated odds of a child who is a boy scout being delinquent are `r bd.by.socio.OR[1, 2]` times the estimated odds of a child who is not a boy scout being delinquent.
+
+Given socioeconomic status is Medium, the estimated odds of a child who is a boy scout being delinquent are `r bd.by.socio.OR[2, 2]` times the estimated odds of a child who is not a boy scout being delinquent.
+
+Given socioeconomic status is High, the estimated odds of a child who is a boy scout being delinquent are `r bd.by.socio.OR[3, 2]` times the estimated odds of a child who is not a boy scout being delinquent.
+
+Thus, controlling for socioeconomic status, children are equally likely to be delinquent, whether or not they are boy scouts.
+
+c) Why are the associations different between (a) and (b)?  Discuss Simpson's Paradox by considering the association between socioeconomic status and boy scout; and the association between socioeconomic status and delinquency.
+
+To investigate why the associations are different between (a) and (b), we consider the association between socioeconomic status and boy scout; and the association between socioeconomic status and delinquency.
+
+The marginal $S - B$ table, and the row-wise probabilities, are
+
+\begin{center}
+```{r 1cSB, results = "asis"}
+latex(tabular(RowFactor(socio, "Socioeconomic status", c("Low", "Medium", "High")) + 1
+	      ~ Factor(scout, "Boy Scout", c("Yes", "No")) + 1
+	      , data = scouts))
+sb <- xtabs(~ socio + scout, scouts)
+```
+\end{center}
+
+```{r 1cSBprop, results = "asis"}
+kable(prop.table(sb, 1))
+```
+
+We can see from the table of probabilities that children of low socioeconomic status are much less likely to be boy scouts than children of high socioeconomic status.
+
+The marginal $S - D$ table, and the row-wise probabilities, are
+
+\begin{center}
+```{r 1cSD, results = "asis"}
+latex(tabular(RowFactor(socio, "Socioeconomic status", c("Low", "Medium", "High")) + 1
+	      ~ Factor(delinquent, "Delinquency", c("Yes", "No")) + 1
+	      , data = scouts))
+sd <- xtabs(~ socio + delinquent, scouts)
+```
+\end{center}
+
+```{r 1cSDprop, results = "asis"}
+kable(prop.table(sd, 1), digits = 3)
+```
+
+We can see from the table of probabilities that children of low socioeconomic status are much more likely to be delinquent than children of high socioeconomic status.
+
+We conclude that this is a case of Simpson's Paradox; there only appears to be an association between being a boy scout and being delinquent because children who are not boy scouts are more likely to be of low socioeconomic status, and children of low socioeconomic status are more likely to be delinquent.
+
+2. The following table shows a study of nesting horseshoe crabs.  Each female horseshoe crab in the study had a male crab attached to her in her nest.  The study investigated whether the weight (kg) of female crab affects the likelihood of the female crab having any other males, called satellites.
+
+```{r 2, results = "asis"}
+crabs <- read.csv("crabs.csv")
+crabs <- crabs[rep(rownames(crabs), crabs$count), 1:2]
+# crabs$satellites <- factor(crabs$satellites, c("yes", "no"))
+
+crabs2 <- read.csv("crabs2.csv")
+crabs2 <- crabs2[rep(rownames(crabs2), crabs2$count), 1:2]
+# crabs2$satellites <- factor(crabs2$satellites, c("yes", "no"))
+
+kable(dcast(crabs2, weight ~ satellites), digits = 3)
+
+crabs3 <- read.csv("crabs.csv")
+crabs3 <- dcast(crabs3, weight ~ satellites)
+```
+
+
+a) Use logistic regression
+$$
+\log \left( \frac{p(x)}{1 - p{x}} \right) = \alpha + \beta x \text{, where }x = \text{weight}
+$$
+to model the effect of weight of female crab on the probability of having satellites.  We use values (1.55, 1.85, 2.15, 2.45, 2.75, 3.05, 3.35) for the weight categories (< 1.7, 1.7--2.0, 2.0--2.3, 2.3--2.6, 2.6--2.9, 2.9--3.2, > 3.2).  Attach the SAS output.
+
+\newpage
+
+```{r 2a, results = "asis"}
+kable(dcast(crabs, weight ~ satellites), digits = 3)
+crabs.lm <- glm(satellites ~ weight, data = crabs, family = "binomial")
+crabs.alpha <- crabs.lm$coefficients["(Intercept)"]
+crabs.beta <- crabs.lm$coefficients["weight"]
+crabs.beta.exp <- exp(crabs.beta)
+crabs.beta.exp.3 <- exp(3 * crabs.beta)
+crabs.2.3 <- predict(crabs.lm, data.frame(weight = 2.3), type = "response")
+crabs.probability <- data.frame(weight = levels(crabs2$weight)
+		      , probability = unique(fitted(crabs.lm)))
+crabs.fitted <- ddply(crabs2, .(weight), plyr::summarize, crabs = length(satellites))
+crabs.fitted$fitted <- crabs.probability$probability * crabs.fitted$crabs
+crabs.se <- summary(crabs.lm)$coefficients[2, 2]
+crabs.wald <- (crabs.beta / crabs.se)^2
+crabs.p <- 1 - pchisq(crabs.wald, 1)
+```
+
+b) Give estimates of $\alpha$ and $\beta$ (up to 4dp).
+\begin{align*}
+\alpha &= `r sprintf("%.4f", crabs.alpha)` \\
+\beta &= `r sprintf("%.4f", crabs.beta)`
+\end{align*}
+
+c) Interpret the association between weight and whether having satellites using the odds ratio.
+
+The estimated odds of having a satellite are
+\begin{align*}
+\exp(\hat{\beta}) = \exp(`r crabs.beta`) = `r crabs.beta.exp`
+\end{align*}
+times higher when the weight goes up one unit (kg).  Since the table gives categories of weight 0.3 units apart, the estimated odds of not having a satellite are $\exp(0.3 \times `r crabs.beta`) = `r exp(0.3 * crabs.beta)`$ times higher when weight falls into category $i + 1$ instead of $i$.
+
+d) Find predicted probability of having satellites when weight = 2.3 kg.
+
+The success probability $p(x)$ is
+\begin{align*}
+p(x) &= \frac{\exp(\alpha + \beta x)}{1 + \exp(\alpha + \beta x)} \\
+&= \frac{\exp(`r crabs.alpha` + `r crabs.beta` \times 2.3)}{1 + \exp(`r crabs.alpha` + `r crabs.beta` \times 2.3)} \\
+&= `r crabs.2.3`
+\end{align*}
+
+\newpage
+
+e) Find predicted probability of having satellites in each category of weight.
+
+```{r 2e, results = "asis"}
+kable(crabs.probability, digits = 3)
+```
+
+f) Find the fitted count of having satellites in each category of weight.
+
+```{r 2f, results = "asis"}
+kable(crabs.fitted[, -2], digits = 3)
+```
+
+g) Test $\mathcal{H}_0: \beta = 0$ against $\mathcal{H}_1: \beta \neq 0$ using the Wald statistic and give the $p$-value of the test.  What do you conclude at the 5% significance level?
+
+The Wald statistic has the value
+\begin{align*}
+Z^2 = \left(\frac{\hat{\beta}}{S.E.}\right)^2 = \left(\frac{`r crabs.beta`}{`r crabs.se`}\right)^2 = `r crabs.wald`
+\end{align*}
+which is $\sim \chi^2_1$, so the $p$-value is `r format.pval(crabs.p, eps = 0.0001, scientific = FALSE)`, which is <$0.05$, so we reject $\mathcal{H}_0$ at the 5% significance level, that is, the weight effects are significant on the likelihood of having satellites.
+
+3. The following table shows a study of 15--16 year old adolescents on ever having sexual intercourse.
+
+\begin{center}
+```{r 3, results = "asis"}
+sex <- read.csv("sex.csv")
+sex <- sex[rep(rownames(sex), sex$count), 1:3]
+sex$race <- relevel(sex$race, "white")
+sex$gender <- relevel(sex$gender, "male")
+sex$intercourse <- relevel(sex$intercourse, "yes")
+latex(tabular(RowFactor(race, "Race (R)", c("White (1)", "Black (2)", "Others (3)"), 1)
+	      * RowFactor(gender, "Gender (G)", c("Male (1)", "Female (2)"), 2)
+	      ~ Factor(intercourse, "Intercourse", c("Yes", "No"))
+	      , data = sex))
+sex$intercourse <- relevel(sex$intercourse, "no")
+```
+\end{center}
+\vspace{10pt}
+Fit the logit model
+\begin{align*}
+\log\left(\frac{p_{ij}}{1 - p_{ij}}\right) = \alpha + \beta^R_i + \beta^G_j
+\end{align*}
+where $p_{ij}$ is the probability of having sexual intercourse when $R$ is at level $i$ and $G$ is at level $j$.
+
+```{r 3a}
+options(contrasts=c("contr.treatment","contr.poly"))
+sex.lm <- glm(intercourse ~ race + gender, data = sex, family = "binomial")
+sex.alpha <- coef(sex.lm)[1]
+sex.beta.R.1 <- 0
+sex.beta.R.2 <- coef(sex.lm)[2]
+sex.beta.R.3 <- coef(sex.lm)[3]
+sex.beta.G.1 <- 0
+sex.beta.G.2 <- coef(sex.lm)[4]
+sex.resid <- summary(sex.lm)$df.residual # wrong
+sex.resid <- length(levels(sex$race)) * length(levels(sex$gender)) - 1 - (length(levels(sex$race)) - 1) - (length(levels(sex$gender)) - 1)
+sex.odds.female <- exp(coef(sex.lm)[4])
+sex.confidence.female <- exp(confint.default(sex.lm, "genderfemale"))
+sex.odds.black <- exp(coef(sex.lm)[2])
+sex.confidence.black <- exp(confint.default(sex.lm, "raceblack"))
+sex.coef <- summary(sex.lm)$coefficients
+sex.G.beta <- sex.coef[4, 1]
+sex.G.se <- sex.coef[4, 2]
+sex.G.z2 <- sex.coef[4, 3]^2
+sex.G.p <- sex.coef[4, 4]
+```
+
+a) Attach your SAS output for the logit model.
+
+b) Give the estimates of parameters.
+\begin{align*}
+\alpha &= `r sex.alpha` \\
+\beta^R_1 &= `r sex.beta.R.1` & \beta^R_2 &= `r sex.beta.R.2` & \beta^R_3 &= `r sex.beta.R.3` \\
+\beta^G_1 &= `r sex.beta.G.1` & \beta^G_2 &= `r sex.beta.G.2` \\
+\end{align*}
+
+c) Interpret the model using the following odds ratios:
+
+i. Comparing the odds of having sexual intercourse for males with the odds of having sexual intercourse for females.  Give the 95% confidence interval for the odds ratio.
+
+The odds of females having had intercourse are `r sex.odds.female` times the odds of males having had sexual intercourse.  The 95% confidence interval for females having had intercourse is (`r sex.confidence.female[1]`, `r sex.confidence.female[2]`).
+
+ii. Comparing the odds of having sexual intercourse for whites with the odds of having sexual intercourse for blacks.
+
+The odds of blacks having had intercourse are `r sex.odds.black` times the odds of whites having had sexual intercourse.  The 95% confidence interval for blacks having had intercourse is (`r sex.confidence.black[1]`, `r sex.confidence.black[2]`).
+
+d) Find the residual degrees of freedom.
+
+The residual degrees of freedom are $\text{(no. of logits) } - \text{ (no. of nonredundant parameters)} = (2 \times 3) - 1 - (3 - 1) - (2 - 1) = `r sex.resid` \text{ degrees of freedom}$.
+
+e) Test $\mathcal{H}_0: \beta^G_1 = 0$ against $\mathcal{H}_1: \beta^G_1 \neq 0$ using the Wald statistic at the 5% significance level and give the $p$-value of the test.  The null hypothesis means that whether a person is male or female has no effect on whether or not they have sexual intercourse.  What do you conclude?
+
+The Wald statistic has the value
+\begin{align*}
+Z^2 = \left(\frac{\hat{\beta}^G_1}{S.E.}\right)^2 = \left(\frac{`r sex.G.beta`}{`r sex.G.se`}\right)^2 = `r sex.G.z2`
+\end{align*}
+which is $\sim \chi^2_1$, so the $p$-value is `r format.pval(sex.G.p, eps = 0.0001, scientific = FALSE)`, which is <$0.05$, so we reject $\mathcal{H}_0$ at the 5% significance level, that is, the gender effects are significant on the likelihood of having had intercourse.

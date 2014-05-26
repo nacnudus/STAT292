@@ -1,0 +1,13 @@
+socio,scout,delinquent,count
+low,yes,yes,10
+low,yes,no,40
+low,no,yes,40
+low,no,no,160
+medium,yes,yes,18
+medium,yes,no,132
+medium,no,yes,18
+medium,no,no,132
+high,yes,yes,8
+high,yes,no,192
+high,no,yes,2
+high,no,no,48
