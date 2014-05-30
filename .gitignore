@@ -7,4 +7,8 @@ figure/
 *.out
 *.pdf
 *.tex
+*.nav
+*.snm
+*.toc
+*.vrb
 figs/
