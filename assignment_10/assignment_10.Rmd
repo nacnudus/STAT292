@@ -1,0 +1,199 @@
+```{r setup, include = FALSE}
+include = FALSE
+echo = FALSE
+opts_chunk$set(echo = FALSE
+	       , warning = FALSE
+	       , message = FALSE
+	       , dpi = 300)
+options(digits = 3)
+```
+
+```{r packages, include = FALSE}
+library(knitr)
+library(tables) # loads Hmisc which conflicts with plyr::summarize
+library(plyr)
+library(reshape2)
+library(car)
+library(Hmisc) # for formatted p-values
+```
+
+STAT 292, Term 1 2014
+
+Duncan Garmonsway 30020831
+
+# Assignment 10
+
+1. Refer to the dataset in Assignment 9.\newline
+   \newline
+   The following table shows a study of 15--16 year old adolescents on ever having sexual intercourse.
+
+\begin{center}
+```{r 3, results = "asis"}
+sex <- read.csv("sex.csv")
+sex <- sex[rep(rownames(sex), sex$count), 1:3]
+sex$race <- relevel(sex$race, "white")
+sex$gender <- relevel(sex$gender, "male")
+sex$intercourse <- relevel(sex$intercourse, "yes")
+latex(tabular(RowFactor(race, "Race ($R$)", c("White (1)", "Black (2)", "Others (3)"), 1)
+	      * RowFactor(gender, "Gender ($G$)", c("Male (1)", "Female (2)"), 2)
+	      ~ Factor(intercourse, "Intercourse ($I$)", c("Yes", "No"))
+	      , data = sex))
+sex$race <- relevel(sex$race, "others")
+sex$gender <- relevel(sex$gender, "female")
+sex$intercourse <- relevel(sex$intercourse, "no")
+```
+\end{center}
+\vspace{10pt}
+Use the backward model selection method to find the simplest model that provides a good fit.  Start from the following model, called model $M_2$
+$$
+\log\left(\frac{p_{ij}}{1 - p_{i}}\right) = \alpha + \beta^R_i + \beta^G_j + \beta^{RG}_{ij}
+$$
+where $p_{ij}$ is the probability of having sexual intercourse when $R$ is at level $i$ and $G$ is at level $j$.  Attach SAS output.
+
+a) Is model $M_2$ a saturated model?  Why or why not?
+
+The model $M_2$ is saturated, because
+\begin{align*}
+\text{Residual d.f.} &= \text{no. of logits} - \text{no. of nonredundant parameters in the model} \\
+&= RG - (1 + (R - 1) + (G - 1) + (R - 1)(G - 1)) \\
+&= 6 - (1 + (3 - 1) + (2 - 1) + (3 - 1)(2 - 1)) \\
+&= 6 - (1 + 2 + 1 + 2) \\
+&= 0
+\end{align*}
+Since the residual d.f. $= 0$, the model is a saturated model.  Also, since it is a saturated model, the fitted counts equal the observed counts.  The logit model provides a perfect fit.
+
+b) What information does **Step 1** provide in the SAS output?  Write down the test hypotheses.  What do you conclude?
+
+The full model ($M_2$) is
+\begin{align*}
+\mathrm{logit}({p_{ij}}) = \alpha + \beta^R_i + \beta^G_j + \beta^{RG}_{ij}
+\end{align*}
+
+The reduced model ($M_1$) is
+\begin{align*}
+\mathrm{logit}({p_{ij}}) = \alpha + \beta^R_i + \beta^G_j
+\end{align*}
+
+\begin{align*}
+&\mathcal{H}_0: \beta^{RG}_{ij} = 0 \text{ for all } i \text{ and } j \\
+&\mathcal{H}_1: \text{ At least one of } \beta^{RG}_{ij} \neq 0
+\end{align*}
+
+The test statistic is given by SAS **Summary of Backward Elimination**.
+
+```{r 1b, include = FALSE}
+sex.logit <- dcast(sex
+		   , race + gender ~ intercourse
+		   , length
+		   , value.var = "intercourse")
+sex.logit.lm <- glm(cbind(yes, no) ~ race * gender, family = binomial(link = "logit"), data = sex.logit)
+M2 <- glm(cbind(yes, no) ~ race + gender, family = binomial(link = "logit"), data = sex.logit)
+
+step1 <- Anova(sex.logit.lm, type = "III", test.statistic = "Wald")
+typeIII <- Anova(M2, type = "III", test.statistic = "Wald")
+
+M2.wald <- deviance(M2)
+M2.df <- df.residual(M2)
+M2.p <- 1 - pchisq(M2.wald, M2.df)
+
+
+step1.wald <- step1[4, 2]
+step1.df <- step1[4, 1]
+step1.p <- step1[4, 3]
+
+race.wald <- typeIII[2, 2]
+race.df <- typeIII[2, 1]
+race.p <- typeIII[2, 3]
+```
+
+The Wald test statistic $= `r sprintf("%.4f", step1.wald)`$ with `r step1.df` d.f.  Since the $p$-value (`r sprintf("%.4f", step1.p)`) $> 0.05$, we conclude that the `race` and `gender` interactions are not significant.  They can be removed from the model.
+
+c) What is the final model and its deviance?  What information does the deviance provide?
+
+The final model $M_1$:
+
+\begin{align*}
+\mathrm{logit}({p_{ij}}) = \alpha + \beta^R_i + \beta^G_j
+\end{align*}
+
+The deviance equals `r sprintf("%.4f", M2.wald)`.  It can be used to test whether model $M_1$ provides a good fit.  The hypotheses are:
+
+\begin{align*}
+&\mathcal{H}_0: \text{Model } M_1 \text{ provides a good fit} \\
+&\mathcal{H}_1: \text{Model } M_1 \text{ does not provide a good fit}
+\end{align*}
+
+The test statistic is
+
+\begin{align*}
+G^2(M_1) = `r sprintf("%.4f", M2.wald)`
+\end{align*}
+
+which follows an asymptotic chi-squared distribution with `r M2.df` d.f.  Since the $p$-value (`r sprintf("%.4f", M2.p)`) $> 0.05$, model $M_1$ fits the data well.
+
+d) Test whether the race effects are significant in the final model.  Write down the test hypotheses.  What do you conclude?
+
+The hypotheses of the test are:
+
+\begin{align*}
+&\mathcal{H}_0: \beta^{R}_{i} = 0 \text{ for all } i \\
+&\mathcal{H}_1: \text{ At least one of } \beta^{R}_{i} \neq 0
+\end{align*}
+
+The Wald chi-square test from the SAS output **Type 3 Analysis of Effects** gives $X^2 = `r sprintf("%.4f", race.wald)`$ with `r race.df` d.f.  Since the $p$-value `r format.pval(race.p, eps = 0.0001, scientific = FALSE)`, which is $> 0.05$, we reject $\mathcal{H}_0$ at the 5% level.  We conclude that the race effects are significant.  At least one of ${\beta^R_i}$ is not equal to zero.
+
+2.  (You are not required to fit models using SAS.  All information is given.) The U.S. National Collegiate Athletic Association conducted a study of graduation rates for student athletes who were freshmen during the 1984--85 academic year.  The result is shown as
+
+\begin{center}
+```{r 2, results = "asis"}
+athletes <- read.csv("athletes.csv")
+athletes <- athletes[rep(rownames(athletes), athletes$count), 1:3]
+athletes$race <- relevel(athletes$race, "white")
+athletes$sex <- relevel(athletes$sex, "female")
+athletes$graduates <- relevel(athletes$graduates, "yes")
+latex(tabular(RowFactor(race, "Race ($R$)", c("White (1)", "Black (2)"), 1)
+	      * RowFactor(sex, "Sex ($S$)", c("Females (1)", "Males (2)"), 2)
+	      ~ Factor(graduates, "Graduates ($G$)", c("Yes", "No"))
+	      , data = athletes))
+```
+\end{center}
+
+The deviance, degrees of freedom (d.f.), and $p$-value for loglinear models $(RS, RG), (RS, SG) \text{ and } (RS, RG, SG)$ are as follows.
+
+\begin{center}
+\begin{tabular}{llll}
+\hline
+Model          & $G^2$   & d.f. & $p$-value \\ \hline
+$(RS, RG)$     & 19.3078 & 2  & < 0.001   \\
+$(RS, SG)$     & 143.21  & 2  & < 0.001   \\
+$(RG, SG)$     & 53.4512 & 2  & < 0.001   \\
+$(RS, RG, SG)$ & 0.0002  & 1  & 0.9887    \\
+$(RSG)$        & 0       & 0  & --        \\ \hline
+\end{tabular}
+\end{center}
+
+a) Test the goodness-of-fit for loglinear model $(RS, RG, SG)$.  Write down the null and alternative hypotheses.  What is the asymptotic distribution for the deviance under the null hypothesis?  Find the rejection region.  Write down the $p$-value.  What do you conclude at a 10% level?
+\begin{align*}
+&\mathcal{H}_0: \text{Model } (RS, RG, SG) \text{ provides a good fit} \\
+&\mathcal{H}_1: \text{Model } (RS, RG, SG) \text{ does not provide a good fit}
+\end{align*}
+
+The deviance $G^2 = 0.0002$ has an asymptotic chi-square distribution with 1 degree of freedom under the null hypothesis.  The rejection region is $G^2 > 2.706$, with 10% confidence.  The $p$-value is 0.9887.  Since the test statistic is not in the 10% rejection region and the $p$-value is not significant at the 10% level ($> 0.1$), we conclude that the model $(RS, RG, SG)$ fits the data well, with 90% confidence.
+
+b) Which loglinear model is the simplest one to fit the data well?
+
+None of the other models  that were fitted $(RS, RG), (RS, SG) \text{ and } (RG, SG)$ fit the model well ($p$-values $< 0.1$), so the model $(RS, RG, SG)$ is the simplest one to fit the data well.
+
+c) Basesd on the loglinear model $(RS, RG, SG)$, find the conditional odds ratio between race and graduation.  Interpret the association.
+
+At `sex` = `female`, the conditional odds ratio is
+\begin{align*}
+\frac{498.066 / 53.934}{297.934 / 89.066} = `r (498.066 / 53.934) / (297.934 / 89.066)`
+\end{align*}
+
+At `sex` = `male`, the conditional odds ratio is
+\begin{align*}
+\frac{877.934 / 197.066}{747.066 / 462.934} = `r (877.934 / 197.066) / (747.066 / 462.934)`
+\end{align*}
+
+Given any level of `sex`, the conditional odds of white students graduating were 2.761 times the conditional odds of black students graduating.  Because model $(RS, RG, SG)$ doesn't have 3-factor interactions, the $R - G$ conditional odds ratio remains the same at each level of `sex`.

@@ -1,0 +1,52 @@
+format.pval               package:Hmisc                R Documentation
+
+_F_o_r_m_a_t _P _V_a_l_u_e_s
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     ‘format.pval’ is intended for formatting p-values.
+
+_U_s_a_g_e:
+
+     format.pval(x, pv=x, digits = max(1, .Options$digits - 2),
+                 eps = .Machine$double.eps, na.form = "NA", ...)
+     
+_A_r_g_u_m_e_n_t_s:
+
+      pv: a numeric vector.
+
+       x: argument for method compliance.
+
+  digits: how many significant digits are to be used.
+
+     eps: a numerical tolerance: see Details.
+
+ na.form: character representation of ‘NA’s.
+
+     ...: arguments passed to ‘format’ in the ‘format.pval’ function
+          body.
+
+_D_e_t_a_i_l_s:
+
+     ‘format.pval’ is mainly an auxiliary function for
+     ‘print.summary.lm’ etc., and does separate formatting for fixed,
+     floating point and very small values; those less than ‘eps’ are
+     formatted as “‘< [eps]’” (where “‘[eps]’” stands for ‘format(eps,
+     digits)’).
+
+_V_a_l_u_e:
+
+     A character vector.
+
+_N_o_t_e:
+
+     This is the base ‘format.pval’ function with the ablitiy to pass
+     the ‘nsmall’ argument to ‘format’
+
+_E_x_a_m_p_l_e_s:
+
+     format.pval(c(runif(5), pi^-100, NA))
+     format.pval(c(0.1, 0.0001, 1e-27))
+     format.pval(c(0.1, 1e-27), nsmall=3)
+     
+
